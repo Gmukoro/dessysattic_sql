@@ -2,10 +2,9 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { getCollectionDetails } from "@/utils/dataFetchers";
-import Loader from "@/components/custom ui/Loader";
-import CollectionForm from "@/components/collections/CollectionForm";
-import { CollectionType } from "@/lib/types";
-import MainLayout from "@/components/MainLayout";
+import Loader from "@/components/admincomponents/custom ui/Loader";
+import CollectionForm from "@/components/admincomponents/collections/CollectionForm";
+import MainLayout from "@/components/admincomponents/MainLayout";
 
 const CollectionDetails = ({
   params,

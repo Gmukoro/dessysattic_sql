@@ -1,19 +1,64 @@
+"use client";
+
+import { use, useEffect, useState } from "react";
 import ProductDetailsMain from "@/components/ProductDetailsMain";
 import ProductCard from "@/components/ProductCard";
 import Reviews from "@/components/Reviews";
-import { getProductDetails, getRelatedProducts } from "@/lib/actions/actions";
-import { ProductType } from "@/lib/types";
-import ProductInfo from "@/components/ProductInfo";
 
-const ProductDetails = async ({
-  params,
-}: {
-  params: { productId: string };
-}) => {
-  const { productId } = await params;
+// Define the types for your params
+type Params = {
+  productId: string;
+};
 
-  const productDetails = await getProductDetails(productId);
-  const relatedProducts = await getRelatedProducts(productId);
+const ProductDetails = ({ params }: { params: Params }) => {
+  const { productId } = params;
+
+  const [productDetails, setProductDetails] = useState<ProductType | null>(
+    null
+  );
+  const [relatedProducts, setRelatedProducts] = useState<ProductType[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!productId) return;
+
+    const fetchProductDetails = async () => {
+      try {
+        const productResponse = await fetch(`/api/products/${productId}`);
+        if (!productResponse.ok) {
+          throw new Error("Product not found");
+        }
+        const productData = await productResponse.json();
+        setProductDetails(productData);
+
+        const relatedResponse = await fetch(
+          `/api/products/${productId}/related`
+        );
+        if (relatedResponse.ok) {
+          const relatedData = await relatedResponse.json();
+          setRelatedProducts(relatedData);
+        }
+      } catch (err: any) {
+        setError(err.message || "Failed to fetch product details");
+      }
+    };
+
+    fetchProductDetails();
+  }, [productId]);
+
+  if (error) {
+    return (
+      <p className="text-heading2-bold text-4xl text-amber-900">{error}</p>
+    );
+  }
+
+  if (!productDetails) {
+    return (
+      <p className="text-heading2-bold text-4xl text-gray-700">
+        Failed to load product details
+      </p>
+    );
+  }
 
   return (
     <>
@@ -28,8 +73,8 @@ const ProductDetails = async ({
             Related Products
           </p>
           <div className="flex flex-wrap gap-8 mx-auto mt-8">
-            {relatedProducts?.map((product: ProductType) => (
-              <div className="w-full sm:w-1/2 lg:w-1/4" key={product._id}>
+            {relatedProducts.map((product) => (
+              <div className="" key={product.id}>
                 <ProductCard product={product} />
               </div>
             ))}
@@ -42,7 +87,5 @@ const ProductDetails = async ({
     </>
   );
 };
-
-export const dynamic = "force-dynamic";
 
 export default ProductDetails;

@@ -1,25 +1,21 @@
-//app\api\products\[productId]\related\route.ts
-
-import Product from "@/lib/models/Product";
-import Collection from "@/lib/models/Collection";
 import { NextRequest, NextResponse } from "next/server";
-import sequelize from "@/app/api/sequelize.config";
-import { Op } from "sequelize";
+import { getProductById, getRelatedProducts } from "@/lib/models/Product";
 
 export const GET = async (
   req: NextRequest,
   { params }: { params: { productId: string } }
 ) => {
   try {
-    await sequelize!.authenticate();
+    const productId = parseInt(params.productId, 10);
+    if (isNaN(productId)) {
+      return new NextResponse(
+        JSON.stringify({ message: "Invalid product ID" }),
+        { status: 400 }
+      );
+    }
 
-    // Find the main product by its ID
-    const product = await Product.findByPk(params.productId, {
-      include: {
-        model: Collection,
-        attributes: ["id"],
-      },
-    });
+    // Fetch product details by ID
+    const product = await getProductById(productId);
 
     if (!product) {
       return new NextResponse(
@@ -28,16 +24,8 @@ export const GET = async (
       );
     }
 
-    // Find related products based on the same category or overlapping collections
-    const relatedProducts = await Product.findAll({
-      where: {
-        [Op.or]: [
-          { category: product.category },
-          { collections: { [Op.in]: product.collections } },
-        ],
-        id: { [Op.ne]: product.id },
-      },
-    });
+    // Fetch related products based on the product's category
+    const relatedProducts = await getRelatedProducts(product);
 
     if (relatedProducts.length === 0) {
       return new NextResponse(
@@ -47,8 +35,8 @@ export const GET = async (
     }
 
     return NextResponse.json(relatedProducts, { status: 200 });
-  } catch (err) {
-    console.log("[related_GET]", err);
+  } catch (error) {
+    console.error("[GET related products]", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 };

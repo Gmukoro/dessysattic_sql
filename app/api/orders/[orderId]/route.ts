@@ -1,40 +1,55 @@
-import Order from "@/lib/models/Order";
-import Customer from "@/lib/models/Customer";
-import Product from "@/lib/models/Product";
+import { query } from "@/lib/database";
 import { NextRequest, NextResponse } from "next/server";
-import sequelize from "@/app/api/sequelize.config";
+import { RowDataPacket } from "mysql2";
 
-// GET: Fetch order details including customer and product info
 export const GET = async (
   req: NextRequest,
   { params }: { params: { orderId: string } }
 ) => {
   try {
-    await sequelize!.authenticate();
+    // Fetch the order by ID
+    const orderQuery = `
+      SELECT * FROM orders WHERE _id = ?;
+    `;
+    const orderResult = (await query({
+      query: orderQuery,
+      values: [params.orderId],
+    })) as RowDataPacket[];
 
-    // Fetch the order and include associated products
-    const orderDetails = await Order.findByPk(params.orderId, {
-      include: [
-        {
-          model: Product,
-          as: "products",
-          attributes: ["id", "name", "price"],
-        },
-      ],
-    });
-
-    if (!orderDetails) {
+    // Check if the orderResult is an array and has a length
+    if (!orderResult || orderResult.length === 0) {
       return new NextResponse(JSON.stringify({ message: "Order Not Found" }), {
         status: 404,
       });
     }
 
-    // Fetch customer details by the customer id associated with the order
-    const customer = await Customer.findOne({
-      where: { id: orderDetails.customerid },
-    });
+    const order = orderResult[0];
 
-    return NextResponse.json({ orderDetails, customer }, { status: 200 });
+    // Fetch associated products from the order
+    const productsQuery = `
+      SELECT * FROM products WHERE _id IN (SELECT product FROM JSON_EXTRACT(?, '$[*].product'));
+    `;
+    const productsResult = (await query({
+      query: productsQuery,
+      values: [order.products],
+    })) as RowDataPacket[];
+
+    // Fetch customer details using customerId from order
+    const customerQuery = `
+      SELECT * FROM customers WHERE id = ?;
+    `;
+    const customerResult = (await query({
+      query: customerQuery,
+      values: [order.customerId],
+    })) as RowDataPacket[];
+
+    // Ensure that customerResult contains data before accessing [0]
+    const customer = customerResult.length > 0 ? customerResult[0] : null;
+
+    return NextResponse.json(
+      { order, products: productsResult, customer },
+      { status: 200 }
+    );
   } catch (err) {
     console.error("[orderId_GET]", err);
     return new NextResponse("Internal Server Error", { status: 500 });

@@ -25,9 +25,9 @@ export default async function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <Providers>
-          <VerificationStatus
+          {/* <VerificationStatus
             visible={session && !session?.user.verified ? true : false}
-          />
+          /> */}
           <ToasterProvider />
           {children}
         </Providers>

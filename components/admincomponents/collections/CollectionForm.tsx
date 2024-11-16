@@ -6,7 +6,7 @@ import { z } from "zod";
 import { useRouter } from "next/navigation";
 
 import { Separator } from "../ui/separator";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/admincomponents/ui/button";
 import {
   Form,
   FormControl,
@@ -14,14 +14,13 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+} from "@/components/admincomponents/ui/form";
+import { Input } from "@/components/admincomponents/ui/input";
 import { Textarea } from "../ui/textarea";
 import ImageUpload from "../custom ui/ImageUpload";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import Delete from "../custom ui/Delete";
-import { CollectionType } from "@/lib/types";
 
 const formSchema = z.object({
   title: z.string().min(2).max(20),

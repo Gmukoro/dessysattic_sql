@@ -131,31 +131,31 @@ const MobileMenu: FC<MobileMenuProps> = React.memo(
       <div className="lg:hidden bg-gray-400 flex flex-col items-start mt-4 text-white p-4 rounded-lg shadow-lg">
         <Link
           href="/"
-          className="block py-2 hover:text-white hover:bg-amber-900 w-full text-left"
+          className="block py-2 hover:text-white hover:bg-gray-500 w-full text-left"
         >
           HOME
         </Link>
         <Link
           href="/brand"
-          className="block py-2 hover:text-white hover:bg-amber-900 w-full text-left"
+          className="block py-2 hover:text-white hover:bg-gray-500 w-full text-left"
         >
           BRAND
         </Link>
         <Link
           href={user ? "/wishlist" : "/sign-in"}
-          className="block py-2 hover:text-white hover:bg-amber-900 w-full text-left"
+          className="block py-2 hover:text-white hover:bg-gray-500 w-full text-left"
         >
           WISHLIST
         </Link>
         <Link
           href={user ? "/orders" : "/sign-in"}
-          className="block py-2 hover:text-white hover:bg-amber-900 w-full text-left"
+          className="block py-2 hover:text-white hover:bg-gray-500 w-full text-left"
         >
           ORDERS
         </Link>
         <button
           onClick={toggleShopDropdown}
-          className="block py-2 hover:text-white hover:bg-amber-900 w-full text-left"
+          className="block py-2 hover:text-white hover:bg-gray-500 w-full text-left"
         >
           SHOP
         </button>

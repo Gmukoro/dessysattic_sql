@@ -4,7 +4,7 @@ const mysql = require("mysql2/promise");
 // MongoDB Atlas connection settings
 const mongoUrl =
   "mongodb+srv://dessysattic_admin:dessysatticAdmin@cluster0-dsy.aq4bh.mongodb.net/dessysattic_admin?retryWrites=true&w=majority&appName=Cluster0-DSY";
-const mongoDbName = "dessysattic_admin"; // Replace with your actual database name
+const mongoDbName = "dessysattic_admin";
 
 // MySQL connection settings
 const mysqlConfig = {

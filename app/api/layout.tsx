@@ -16,3 +16,164 @@ export default function RootLayout({
     </html>
   );
 }
+/*
+
+when I am trying to like a product this is the error on the console... ○ Compiling /api/wishlist ...
+ ✓ Compiled /api/wishlist in 842ms (3403 modules)
+ ⨯ node_modules\mysql2\lib\connection.js (592:1) @ eval
+ ⨯ uncaughtException: TypeError: Bind parameters must not contain undefined. To pass SQL NULL specify JS null
+    at eval (webpack-internal:///(rsc)/./node_modules/mysql2/lib/connection.js:592:17)
+    at Array.forEach (<anonymous>)
+    at PoolConnection.execute (webpack-internal:///(rsc)/./node_modules/mysql2/lib/connection.js:584:22)
+    at eval (webpack-internal:///(rsc)/./node_modules/mysql2/lib/pool.js:172:14)
+    at eval (webpack-internal:///(rsc)/./node_modules/mysql2/lib/pool.js:45:37)
+  590 |         }
+  591 |         if (val === undefined) {
+> 592 |           throw new TypeError(
+      | ^
+  593 |             'Bind parameters must not contain undefined. To pass SQL NULL specify JS null'
+  594 |           );
+  595 |         }
+ ⨯ node_modules\mysql2\lib\connection.js (592:1) @ eval
+ ⨯ uncaughtException: TypeError: Bind parameters must not contain undefined. To pass SQL NULL specify JS null
+    at eval (webpack-internal:///(rsc)/./node_modules/mysql2/lib/connection.js:592:17)
+    at Array.forEach (<anonymous>)
+    at PoolConnection.execute (webpack-internal:///(rsc)/./node_modules/mysql2/lib/connection.js:584:22)
+    at eval (webpack-internal:///(rsc)/./node_modules/mysql2/lib/pool.js:172:14)
+    at eval (webpack-internal:///(rsc)/./node_modules/mysql2/lib/pool.js:45:37)
+  590 |         }
+  591 |         if (val === undefined) {
+> 592 |           throw new TypeError(
+      | ^
+  593 |             'Bind parameters must not contain undefined. To pass SQL NULL specify JS null'
+  594 |           );
+  595 |         } ..."use client";
+
+import { useSession } from "next-auth/react";
+import { Heart } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+
+interface HeartFavoriteProps {
+  product: ProductType;
+  updateSignedInUser?: (updatedUser: BaseUserDoc) => void;
+}
+
+const HeartFavorite = ({ product, updateSignedInUser }: HeartFavoriteProps) => {
+  const router = useRouter();
+  const { data: session } = useSession();
+
+  const [loading, setLoading] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
+
+  const getUser = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/users");
+      if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`);
+      const data = await res.json();
+
+      if (data && Array.isArray(data.wishlist)) {
+        setIsLiked(data.wishlist.includes(product.id));
+      } else {
+        console.warn("Unexpected response format:", data);
+        setIsLiked(false);
+      }
+    } catch (err) {
+      console.error("[users_GET]", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (session) {
+      getUser();
+    }
+  }, [session]);
+
+  const handleLike = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    try {
+      if (!session) {
+        router.push("/sign-in");
+        return;
+      }
+      const res = await fetch("/api/wishlist", {
+        method: "POST",
+        body: JSON.stringify({ productId: product.id }),
+      });
+
+      if (!res.ok) {
+        const errorMessage = await res.text();
+        throw new Error(`Error ${res.status}: ${errorMessage}`);
+      }
+
+      const updatedUser = await res.json();
+      setIsLiked(updatedUser.wishlist.includes(product.id));
+      updateSignedInUser && updateSignedInUser(updatedUser);
+    } catch (err) {
+      console.error("Error updating wishlist:", err);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleLike}
+      disabled={loading}
+      aria-label={isLiked ? "Remove from wishlist" : "Add to wishlist"}
+    >
+      <Heart fill={isLiked ? "red" : "white"} />
+      {loading && <span>Loading...</span>}
+    </button>
+  );
+};
+
+export default HeartFavorite; ...//app\api\wishlist\route.ts
+
+import { auth } from "@/auth";
+import { NextRequest, NextResponse } from "next/server";
+import {
+  addToWishlist,
+  removeFromWishlist,
+  getUserById,
+} from "@/lib/models/user";
+
+export const POST = async (req: NextRequest) => {
+  try {
+    // Check if the user is authenticated
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { productId } = await req.json();
+    if (!productId) {
+      return NextResponse.json(
+        { error: "Product ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Fetch user wishlist to check if product exists in wishlist
+    const user = await getUserById(session.user.id);
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const isLiked = user.wishlist.includes(productId);
+    const updatedWishlist = isLiked
+      ? await removeFromWishlist(session.user.id, productId)
+      : await addToWishlist(session.user.id, productId);
+
+    return NextResponse.json({ wishlist: updatedWishlist }, { status: 200 });
+  } catch (err) {
+    console.error("[wishlist_POST]", err);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
+  }
+}; ...
+
+*/

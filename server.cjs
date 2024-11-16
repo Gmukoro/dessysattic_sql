@@ -1,14 +1,14 @@
 const { createServer } = require("http");
 const { parse } = require("url");
 const next = require("next");
-
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
 const port = 3000;
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
-app.prepare().then(() => {
+app.prepare().then(async () => {
+  // Initialize the Customer model here
   createServer(async (req, res) => {
     try {
       const parsedUrl = parse(req.url, true);

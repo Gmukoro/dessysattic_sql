@@ -1,10 +1,12 @@
-import { getCollections } from "@/lib/actions/actions";
-import { CollectionType } from "@/lib/types";
+import {
+  CollectionAttributes,
+  getAllCollections,
+} from "@/lib/models/Collection";
 import Image from "next/image";
 import Link from "next/link";
 
 const Collections = async () => {
-  const collections = await getCollections();
+  const collections = await getAllCollections();
 
   return (
     <div className="flex flex-col items-center gap-10 py-8 px-5">
@@ -15,10 +17,10 @@ const Collections = async () => {
         <p className="text-body-bold">No collections found</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 items-center justify-center">
-          {collections.map((collection: CollectionType) => (
-            <Link href={`/collections/${collection._id}`} key={collection._id}>
+          {collections.map((collection: CollectionAttributes) => (
+            <Link href={`/collections/${collection.id}`} key={collection.id}>
               <Image
-                key={collection._id}
+                key={collection.id}
                 src={collection.image}
                 alt={collection.title}
                 width={350}

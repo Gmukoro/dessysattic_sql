@@ -40,3 +40,6 @@ next-env.d.ts
 
 next.zip
 *.zip
+#config.json
+config.json
+migrate.js

@@ -1,6 +1,6 @@
 "use client";
 
-import { FC, useActionState, useEffect } from "react";
+import { FC, useActionState } from "react";
 import { Input } from "@nextui-org/react";
 import AuthForm from "@/components/AuthForm";
 import { signUp } from "../../actions/auth";
@@ -10,7 +10,11 @@ interface Props {}
 
 const SignUp: FC<Props> = () => {
   const router = useRouter();
-  const [state, signUpAction] = useActionState(signUp, {});
+  const [state, signUpAction] = useActionState(signUp, {
+    success: false,
+    errors: {},
+    error: undefined,
+  });
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-gradient-to-r from-yellow-200 via-neutral-800 to-amber-600">

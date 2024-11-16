@@ -1,47 +1,39 @@
 "use server";
-import { string, z } from "zod";
+
+import { z } from "zod";
 import crypto from "crypto";
+import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
-import { Op } from "sequelize";
-import UserModel, { createNewUser } from "@/lib/models/user";
-import VerificationTokenModel from "@/lib/models/verificationToken";
+import {
+  createUser,
+  getUserByEmail,
+  updateUser,
+  getUserById,
+  compareUserPassword,
+} from "@/lib/models/user";
+import {
+  createVerificationToken,
+  getTokenByUserId,
+  cleanupExpiredTokens,
+  compareToken,
+} from "@/lib/models/verificationToken";
+import {
+  createPasswordResetToken,
+  comparePasswordResetToken,
+  deleteByUserId,
+} from "@/lib/models/passwordResetToken";
 import {
   passwordValidationSchema,
   signInSchema,
 } from "@/utils/verificationSchema";
 import { auth, signIn, unstable_update } from "@/auth";
-import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import mail from "@/utils/mail";
 import { uploadFileToCloud } from "@/utils/fileHandler";
-import PassResetTokenModel from "@/lib/models/passwordResetToken";
+import { v4 as uuidv4 } from "uuid";
 
-// Admin email addresses
-const admin = ["dessysattic@gmail.com", "Omoefeeweka6@gmail.com"];
-
-// Handle verification token with Sequelize/MySQL
-const handleVerificationToken = async (user: {
-  id: string;
-  name: string;
-  email: string;
-}) => {
-  const userId = user.id;
-  const token = crypto.randomBytes(36).toString("hex");
-
-  // Delete any existing verification token for the user
-  await VerificationTokenModel.destroy({ where: { userId } });
-  // Create a new verification token
-  await VerificationTokenModel.create({ token, userId });
-  const link = `${process.env.VERIFICATION_LINK}?token=${token}&userId=${userId}`;
-  await mail.sendVerificationMail({ link, name: user.name, to: user.email });
-};
-
-// Validation schema for user sign-up
-const signUpSchema = z.object({
-  name: z.string().trim().min(3, "Invalid name!"),
-  email: z.string().email("Invalid email!"),
-  password: z.string().min(8, "Password is too short!"),
-});
+// Admin email list
+const adminEmails = ["dessysattic@gmail.com", "Omoefeeweka6@gmail.com"];
 
 interface AuthResponse {
   success?: boolean;
@@ -49,124 +41,193 @@ interface AuthResponse {
   error?: string;
 }
 
-// User sign-up function with Sequelize
-export const signUp = async (
-  state: AuthResponse,
-  data: FormData
-): Promise<AuthResponse> => {
+// Utility: Create and send verification token
+const handleVerificationToken = async (user: {
+  id: string;
+  name: string;
+  email: string;
+}) => {
+  const { id: userId, name, email } = user;
+  const token = crypto.randomBytes(36).toString("hex");
+
+  // Cleanup existing tokens and create a new one
+  await cleanupExpiredTokens();
+  await createVerificationToken({
+    token,
+    userId,
+    expires: new Date(Date.now() + 1000 * 60 * 60 * 24),
+  });
+
+  const link = `${process.env.VERIFICATION_LINK}?token=${token}&userId=${userId}`;
+  await mail.sendVerificationMail({ link, name, to: email });
+};
+
+// Signup
+const signUpSchema = z.object({
+  name: z.string().trim().min(3, "Invalid name!"),
+  email: z.string().email("Invalid email!"),
+  password: z.string().min(8, "Password is too short!"),
+});
+
+export const signUp = async (state: AuthResponse, data: FormData) => {
   const result = signUpSchema.safeParse({
     name: data.get("name"),
     email: data.get("email"),
     password: data.get("password"),
   });
+
   if (!result.success) {
-    return { success: false, errors: result.error.formErrors.fieldErrors };
+    // Make sure to return errors in the correct format
+    return {
+      success: false,
+      errors: result.error.formErrors.fieldErrors,
+      error: undefined,
+    };
   }
 
-  const { email, name, password } = result.data;
+  const { name, email, password } = result.data;
+  const existingUser = await getUserByEmail(email);
 
-  // Check if user exists in MySQL database
-  const oldUser = await UserModel.findOne({ where: { email } });
-  if (oldUser) return { success: false, error: "User already exists!" };
+  if (existingUser) {
+    return {
+      success: false,
+      error: "User already exists!",
+      errors: undefined, // Ensure this is undefined as error is present
+    };
+  }
 
-  // Create a new user in MySQL
-  const user = await createNewUser({
+  const user = await createUser({
     name,
     email,
-    password,
-    provider: "credentials",
+    password: bcrypt.hashSync(password, 10),
     verified: false,
+    wishlist: [],
   });
 
-  // Handle sending verification link
-  await handleVerificationToken({ email, id: user.id.toString(), name });
-
+  await handleVerificationToken({ id: "user.id", name, email });
   await signIn("credentials", { email, password, redirectTo: "/" });
 
-  return { success: true };
+  return {
+    success: true,
+    errors: undefined,
+  };
 };
 
-// Sign-in function with error handling using Sequelize
 export const continueWithCredentials = async (
   state: AuthResponse,
   data: FormData
 ): Promise<AuthResponse> => {
   try {
+    // Validate the data against the schema
     const result = signInSchema.safeParse({
       email: data.get("email"),
       password: data.get("password"),
     });
-    if (!result.success)
+
+    if (!result.success) {
       return { success: false, errors: result.error.formErrors.fieldErrors };
+    }
 
     const { email, password } = result.data;
 
-    // Sign the user in
-    await signIn("credentials", {
-      email,
-      password,
-      redirectTo: "/",
-    });
+    // Check if the user exists and if the password matches
+    const user = await getUserByEmail(email);
+    if (!user) {
+      return { success: false, error: "User not found" };
+    }
+
+    const isPasswordValid = await compareUserPassword(email, password);
+    if (!isPasswordValid) {
+      return { success: false, error: "Incorrect password" };
+    }
+
+    // Sign the user in using NextAuth.js
+    await signIn("credentials", { email, password, redirectTo: "/" });
+
     return { success: true };
   } catch (error) {
     let errorMsg = "";
     if (error instanceof Error && error.message === "NEXT_REDIRECT") {
-      redirect("/");
-    } else if (error instanceof AuthError) {
-      errorMsg = error.message;
+      // Handle the redirect error in a specific way if needed
+      errorMsg = "Redirect error, please try again.";
     } else {
-      errorMsg = (error as any).message;
+      errorMsg = (error as any).message || "Unknown error occurred.";
     }
-    return { error: errorMsg, success: false };
+
+    return { success: false, error: errorMsg };
   }
 };
 
-// Generate verification link function with Sequelize
-export const generateVerificationLink = async (): Promise<{
-  success: boolean;
-}> => {
+interface VerificationResponse {
+  success?: boolean;
+}
+export const generateVerificationLink = async (
+  state: VerificationResponse
+): Promise<VerificationResponse> => {
   const session = await auth();
   if (!session) return { success: false };
 
-  const user = await UserModel.findByPk(session.user.id);
-  if (user?.verified) {
+  const { email, id, name } = session.user;
+
+  // Fetch user details from the database
+  const user = await getUserById(id);
+  if (!user) {
     return { success: false };
   }
 
-  const { email, id, name } = session.user;
-  await handleVerificationToken({ email, id: id.toString(), name });
+  // Check if the user is already verified
+  if (user.verified) {
+    // User is already verified
+    return { success: false };
+  }
+
+  // Check if a token already exists for the user
+  const existingToken = await getTokenByUserId(id);
+  if (existingToken) {
+    // If the token already exists and is valid, return success
+    return { success: true };
+  }
+
+  // Generate a new verification token and store it
+  const token = uuidv4();
+  const expirationTime = new Date(Date.now() + 3600000);
+
+  // Create the verification token
+  await createVerificationToken({
+    token,
+    userId: id,
+    expires: expirationTime,
+  });
+
   return { success: true };
 };
 
-// Update profile information function with Sequelize
 export const updateProfileInfo = async (data: FormData) => {
   const session = await auth();
-  if (!session) return { success: false, error: "User not authenticated." };
+  if (!session) return;
 
   const userInfo: { name?: string; avatar?: { id: string; url: string } } = {};
+
   const name = data.get("name");
   const avatar = data.get("avatar");
 
+  // Validate and update name if necessary
   if (typeof name === "string" && name.trim().length >= 3) {
     userInfo.name = name;
-  } else {
-    return {
-      success: false,
-      error: "Invalid name. Please provide a valid name.",
-    };
   }
 
-  if (avatar instanceof Blob && avatar.type.startsWith("image/")) {
+  // Validate and upload the avatar if it's a valid image file
+  if (avatar instanceof File && avatar.type.startsWith("image")) {
     const result = await uploadFileToCloud(avatar);
     if (result) {
       userInfo.avatar = { id: result.public_id, url: result.secure_url };
     }
   }
 
-  await UserModel.update(userInfo, {
-    where: { id: session.user.id },
-  });
+  // Update the user's data in MySQL database
+  await updateUser(session.user.id, userInfo);
 
+  // Update session data with new user info
   await unstable_update({
     user: {
       ...session.user,
@@ -174,77 +235,66 @@ export const updateProfileInfo = async (data: FormData) => {
       avatar: userInfo.avatar?.url,
     },
   });
-
-  return { success: true };
 };
 
-// Generate password reset link with Sequelize
+// Generate password reset link
 export const generatePassResetLink = async (
   state: { message?: string; error?: string },
   formData: FormData
-): Promise<{ message?: string; error?: string }> => {
+) => {
   const email = formData.get("email");
-
   if (typeof email !== "string") return { error: "Invalid email!" };
 
-  const message = "If we found your profile, we will send you the link!";
-  const user = await UserModel.findOne({
-    where: { email, provider: "credentials" },
-  });
-
+  const message = "If we found your profile, we sent you the link!";
+  const user = await getUserByEmail(email);
   if (!user) return { message };
 
-  const userId = user.id;
   const token = crypto.randomBytes(36).toString("hex");
+  await deleteByUserId(user.id);
+  await createPasswordResetToken({
+    token,
+    userId: user.id,
+    expires: new Date(Date.now() + 1000 * 60 * 60 * 24),
+  });
 
-  // Handle token creation and email sending
-  await PassResetTokenModel.destroy({ where: { userId } });
-  await PassResetTokenModel.create({ token, userId });
-  const link = `${process.env.PASS_RESET_LINK}?token=${token}&userId=${userId}`;
-  await mail.sendPassResetMail({ link, name: user.name, to: user.email });
+  const link = `${process.env.PASS_RESET_LINK}?token=${token}&userId=${user.id}`;
+  await mail.sendPassResetMail({ link, name: user.name, to: email });
 
   return { message };
 };
 
-
-// Update password function with validation using Sequelize
-export const updatePassword = async (data: FormData): Promise<AuthResponse> => {
+// Update password
+export const updatePassword = async (
+  state: { success?: boolean; error?: string },
+  data: FormData
+) => {
   const fields = ["one", "two", "token", "userId"];
-  const incomingData: Record<string, any> = {};
-  for (const field of fields) {
-    incomingData[field] = data.get(field);
-  }
+  const incomingData = Object.fromEntries(
+    fields.map((field) => [field, data.get(field)])
+  );
 
   const result = passwordValidationSchema.safeParse(incomingData);
   if (!result.success) return { success: false, error: "Invalid Password!" };
 
-  const { userId, token, one } = result.data;
-  const resetToken = await PassResetTokenModel.findOne({ where: { userId } });
-  if (!resetToken || resetToken.token !== token) {
-    return { success: false, error: "Invalid request!" };
-  }
+  const { one, token, userId } = result.data;
+  const resetToken = await comparePasswordResetToken(userId, token);
 
-  const user = await UserModel.update(
-    { password: one },
-    { where: { id: userId } }
-  );
+  if (!resetToken) return { success: false, error: "Invalid request!" };
+
+  const user = await getUserById(userId);
   if (!user) return { success: false, error: "User not found!" };
 
-  // Delete the reset token after use
-  await PassResetTokenModel.destroy({ where: { userId } });
+  await updateUser(userId, { password: bcrypt.hashSync(one, 10) });
+  await deleteByUserId(resetToken.id);
 
   return { success: true };
 };
 
-// Admin redirect logic
+// Admin redirect
 export const redirectAdmin = async () => {
   const session = await auth();
   if (!session) return redirect("/sign-in");
 
-  const userEmail = session.user.email;
-  if (admin.includes(userEmail)) {
-    return redirect("/admin");
-  } else {
-    return redirect("/");
-  }
+  if (adminEmails.includes(session.user.email)) return redirect("/admin");
+  return redirect("/");
 };

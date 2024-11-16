@@ -1,5 +1,5 @@
-import ProductForm from "@/components/products/ProductForm";
-import MainLayout from "@/components/MainLayout";
+import ProductForm from "@/components/admincomponents/products/ProductForm";
+import MainLayout from "@/components/admincomponents/MainLayout";
 
 const CreateProduct = () => {
   return (

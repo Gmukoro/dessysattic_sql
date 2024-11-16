@@ -1,6 +1,4 @@
 import ProductCard from "@/components/ProductCard";
-import { getCollectionDetails } from "@/lib/actions/actions";
-import { ProductType } from "@/lib/types";
 import Image from "next/image";
 import React from "react";
 
@@ -9,7 +7,13 @@ const CollectionDetails = async ({
 }: {
   params: { collectionId: string };
 }) => {
-  const collectionDetails = await getCollectionDetails(params.collectionId);
+  // Fetch collection details from the API route
+  const res = await fetch(`/api/collections/${params.collectionId}`);
+  const collectionDetails = await res.json();
+
+  if (!collectionDetails) {
+    return <p className="text-heading3-bold text-amber-950">No collections</p>;
+  }
 
   return (
     <div className="px-10 py-5 flex flex-col items-center gap-8">
@@ -28,7 +32,7 @@ const CollectionDetails = async ({
       </p>
       <div className="flex flex-wrap gap-16 justify-center">
         {collectionDetails.products.map((product: ProductType) => (
-          <ProductCard key={product._id} product={product} />
+          <ProductCard key={product.id} product={product} />
         ))}
       </div>
     </div>

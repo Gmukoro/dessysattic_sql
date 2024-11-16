@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/admincomponents/ui/button";
 
 import {
   ColumnDef,
@@ -19,7 +19,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/admincomponents/ui/table";
 import { Input } from "../ui/input";
 import { useState } from "react";
 

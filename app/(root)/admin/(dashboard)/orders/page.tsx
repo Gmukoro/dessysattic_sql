@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { getOrders } from "@/utils/dataFetchers";
-import Loader from "@/components/custom ui/Loader";
-import { DataTable } from "@/components/custom ui/DataTable";
-import { columns } from "@/components/orders/OrderColumns";
-import { Separator } from "@/components/ui/separator";
-import MainLayout from "@/components/MainLayout";
+import Loader from "@/components/admincomponents/custom ui/Loader";
+import { DataTable } from "@/components/admincomponents/custom ui/DataTable";
+import { columns } from "@/components/admincomponents/orders/OrderColumns";
+import { Separator } from "@/components/admincomponents/ui/separator";
+import MainLayout from "@/components/admincomponents/MainLayout";
 
 const Orders = () => {
   const [loading, setLoading] = useState(true);

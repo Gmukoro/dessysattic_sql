@@ -1,7 +1,4 @@
 import BestSellers from "@/components/Best_sellers";
-import ProductCard from "@/components/ProductCard";
-import { getCollections } from "@/lib/actions/actions";
-import { ProductType } from "@/lib/types";
 
 const BestSellersPage = () => {
   return (

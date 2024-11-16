@@ -1,4 +1,3 @@
-import { ProductType } from "@/lib/types";
 import Link from "next/link";
 
 interface ProductButtonProps {

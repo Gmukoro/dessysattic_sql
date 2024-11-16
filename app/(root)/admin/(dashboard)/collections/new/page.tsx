@@ -1,5 +1,5 @@
-import CollectionForm from "@/components/collections/CollectionForm";
-import MainLayout from "@/components/MainLayout";
+import CollectionForm from "@/components/admincomponents/collections/CollectionForm";
+import MainLayout from "@/components/admincomponents/MainLayout";
 
 const CreateCollection = () => {
   return (

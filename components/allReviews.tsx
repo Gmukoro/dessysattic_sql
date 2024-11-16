@@ -1,6 +1,5 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { getAllReviews } from "@/lib/actions/actions";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation } from "swiper/modules";
 import "swiper/swiper-bundle.css";
@@ -10,11 +9,6 @@ interface Review {
   _id: string;
   content: string;
   rating: number;
-  title: string;
-  user: {
-    id: string;
-    title: string;
-  };
   name: string;
   createdAt: string;
 }
@@ -27,10 +21,23 @@ const ReviewsComponent = () => {
   useEffect(() => {
     const fetchReviews = async () => {
       try {
-        const fetchedReviews = await getAllReviews();
-        setReviews(fetchedReviews);
+        const response = await fetch("/api/reviews", {
+          method: "GET",
+        });
+
+        if (!response.ok) {
+          throw new Error(await response.text());
+        }
+
+        const fetchedReviews: Review[] = await response.json();
+        if (fetchedReviews.length === 0) {
+          setError("No reviews available");
+        } else {
+          setReviews(fetchedReviews);
+        }
         setLoading(false);
       } catch (err) {
+        console.error("Error fetching reviews:", err);
         setError("Failed to fetch reviews");
         setLoading(false);
       }
@@ -63,7 +70,6 @@ const ReviewsComponent = () => {
               prevEl: ".swiper-button-prev",
             }}
             breakpoints={{
-              // Responsive breakpoints
               640: {
                 slidesPerView: 1,
               },
@@ -91,7 +97,7 @@ const ReviewsComponent = () => {
             <HiArrowLeft className="text-white text-2xl" />
           </div>
           <div className="absolute top-1/2 right-0 transform -translate-y-1/2 swiper-button-next cursor-pointer z-10">
-            <HiArrowRight className="text-white text-2xl" />{" "}
+            <HiArrowRight className="text-white text-2xl" />
           </div>
         </div>
       ) : (

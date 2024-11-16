@@ -1,6 +1,5 @@
 "use client";
 
-import { ProductType, BaseUserDoc } from "@/lib/types";
 import { useSession } from "next-auth/react";
 import { Heart } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -26,7 +25,7 @@ const HeartFavorite = ({ product, updateSignedInUser }: HeartFavoriteProps) => {
       const data = await res.json();
 
       if (data && Array.isArray(data.wishlist)) {
-        setIsLiked(data.wishlist.includes(product._id));
+        setIsLiked(data.wishlist.includes(product.id));
       } else {
         console.warn("Unexpected response format:", data);
         setIsLiked(false);
@@ -53,7 +52,7 @@ const HeartFavorite = ({ product, updateSignedInUser }: HeartFavoriteProps) => {
       }
       const res = await fetch("/api/wishlist", {
         method: "POST",
-        body: JSON.stringify({ productId: product._id }),
+        body: JSON.stringify({ productId: product.id }),
       });
 
       if (!res.ok) {
@@ -62,7 +61,7 @@ const HeartFavorite = ({ product, updateSignedInUser }: HeartFavoriteProps) => {
       }
 
       const updatedUser = await res.json();
-      setIsLiked(updatedUser.wishlist.includes(product._id));
+      setIsLiked(updatedUser.wishlist.includes(product.id));
       updateSignedInUser && updateSignedInUser(updatedUser);
     } catch (err) {
       console.error("Error updating wishlist:", err);

@@ -4,15 +4,14 @@ import { useState } from "react";
 import HeartFavorite from "./HeartFavorite";
 import { MinusCircle, PlusCircle } from "lucide-react";
 import useCart from "@/lib/hooks/useCart";
-import { ProductType } from "@/lib/types";
 
 const ProductInfo = ({ productInfo }: { productInfo: ProductType }) => {
-  const [selectedColor, setSelectedColor] = useState<string>(
-    productInfo.colors[0]
-  );
-  const [selectedSize, setSelectedSize] = useState<string>(
-    productInfo.sizes[0]
-  );
+  // Handle potential null/undefined values for colors and sizes
+  const colors = productInfo.colors ?? [];
+  const sizes = productInfo.sizes ?? [];
+
+  const [selectedColor, setSelectedColor] = useState<string>(colors[0] || "");
+  const [selectedSize, setSelectedSize] = useState<string>(sizes[0] || "");
   const [quantity, setQuantity] = useState<number>(1);
 
   const cart = useCart();

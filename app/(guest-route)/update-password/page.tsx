@@ -1,9 +1,11 @@
-// pages/update-password.tsx
 import AuthSubmitButton from "@/components/AuthSubmitButton";
 import UpdatePasswordForm from "@/components/UpdatePasswordForm";
 import { notFound } from "next/navigation";
 import { FC } from "react";
-import PasswordResetToken from "@/lib/models/passwordResetToken";
+import {
+  comparePasswordResetToken,
+  findOne,
+} from "@/lib/models/passwordResetToken";
 
 interface Props {
   searchParams: {
@@ -16,11 +18,9 @@ const UpdatePassword: FC<Props> = async ({ searchParams }) => {
   const { token, userId } = searchParams;
 
   try {
-    const resetToken = await PasswordResetToken.findOne({
-      where: { userId },
-    });
+    const resetToken = await findOne(userId);
 
-    if (!resetToken || !resetToken.compare(token)) {
+    if (!resetToken || !comparePasswordResetToken(token, "resetToken.token")) {
       throw new Error("Invalid token");
     }
   } catch (error) {

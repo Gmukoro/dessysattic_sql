@@ -1,83 +1,24 @@
-//app\api\review\route.ts
-
-// Import necessary models and utilities
-import Product from "@/lib/models/Product";
-import Review from "@/lib/models/reviews";
-import sequelize from "@/app/api/sequelize.config";
+// app/api/review/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { Op } from "sequelize";
+import { format } from "date-fns";
+import reviewModel from "@/lib/models/reviews";
+import { query } from "@/lib/database";
+import { RowDataPacket } from "mysql2";
 
-// Define CORS headers
+// CORS Headers
 const corsHeaders = {
-  "Access-Control-Allow-Origin": `*`,
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
-// POST method for creating a new review
-export const POST = async (req: NextRequest) => {
-  await sequelize!.authenticate();
-
-  if (req.method === "OPTIONS") {
-    return new NextResponse(null, { status: 204, headers: corsHeaders });
-  }
-
-  try {
-    const { productId, content, rating, name, email } = await req.json();
-
-    if (!productId || !content || !rating || !name) {
-      return new NextResponse("Insufficient data to create a review", {
-        status: 400,
-      });
-    }
-
-    if (typeof rating !== "number" || rating < 1 || rating > 5) {
-      return new NextResponse("Rating must be a number between 1 and 5", {
-        status: 400,
-      });
-    }
-
-    // Find product by primary key using Sequelize
-    const product = await Product.findByPk(productId);
-    if (!product) {
-      return new NextResponse("Product not found", { status: 404 });
-    }
-
-    // Check if the user has already reviewed this product
-    const existingReview = await Review.findOne({
-      where: { productId, email },
-    });
-    if (existingReview) {
-      return new NextResponse("You have already reviewed this product", {
-        status: 400,
-      });
-    }
-
-    // Create a new review
-    const newReview = await Review.create({
-      productId,
-      rating,
-      comment: content,
-      userId: name, // or an actual user ID if available
-      email,
-    });
-
-    return new NextResponse(JSON.stringify(newReview), {
-      status: 201,
-      headers: corsHeaders,
-    });
-  } catch (err) {
-    console.error("[POST Error]", err);
-    return new NextResponse("Internal Server Error", { status: 500 });
-  }
+// Handle OPTIONS Preflight Request
+export const OPTIONS = async () => {
+  return new NextResponse(null, { status: 204, headers: corsHeaders });
 };
 
-// GET method to fetch reviews for a product
+// GET method to retrieve all reviews for a product
 export const GET = async (req: NextRequest) => {
-  if (req.method === "OPTIONS") {
-    return new NextResponse(null, { status: 204, headers: corsHeaders });
-  }
-
   try {
     const { searchParams } = new URL(req.url);
     const productId = searchParams.get("productId");
@@ -86,25 +27,90 @@ export const GET = async (req: NextRequest) => {
       return new NextResponse("Product ID is required", { status: 400 });
     }
 
-    // Fetch reviews using Sequelize's `findAll` with filtering
-    const reviews = await Review.findAll({
-      where: { productId },
-      order: [["createdAt", "DESC"]],
-    });
+    const reviewsQuery = `
+      SELECT _id, name, content, rating, createdAt 
+      FROM reviews 
+      WHERE productId = ? 
+      ORDER BY createdAt DESC;
+    `;
+    const reviewsResult = (await query({
+      query: reviewsQuery,
+      values: [productId],
+    })) as RowDataPacket[];
 
-    if (!reviews.length) {
+    // Check if reviewsResult is an array and has entries
+    if (!Array.isArray(reviewsResult) || reviewsResult.length === 0) {
       return new NextResponse("No reviews found for this product", {
         status: 404,
       });
     }
 
-    // Return the reviews in the response
-    return new NextResponse(JSON.stringify(reviews), {
+    const formattedReviews = reviewsResult.map((review) => ({
+      ...review,
+      createdAt: format(new Date(review.createdAt), "MMM do, yyyy"),
+    }));
+
+    return NextResponse.json(formattedReviews, { status: 200 });
+  } catch (err) {
+    console.error("[reviews_GET]", err);
+    return new NextResponse("Internal Server Error", { status: 500 });
+  }
+};
+
+// POST method to create a new review
+export const POST = async (req: NextRequest) => {
+  try {
+    const { productId, content, rating, name, email } = await req.json();
+
+    if (!productId || !content || !rating || !name || !email) {
+      return new NextResponse("Missing required fields", { status: 400 });
+    }
+
+    const newReview = {
+      _id: crypto.randomUUID(),
+      productId,
+      name,
+      content,
+      rating,
+      email,
+    };
+
+    await reviewModel.createReview(newReview);
+
+    return new NextResponse("Review created successfully", {
+      status: 201,
+      headers: corsHeaders,
+    });
+  } catch (err) {
+    console.error("[reviews_POST]", err);
+    return new NextResponse("Internal Server Error", {
+      status: 500,
+      headers: corsHeaders,
+    });
+  }
+};
+
+// DELETE method to delete a review by ID
+export const DELETE = async (req: NextRequest) => {
+  try {
+    const { searchParams } = new URL(req.url);
+    const reviewId = searchParams.get("reviewId");
+
+    if (!reviewId) {
+      return new NextResponse("Review ID is required", { status: 400 });
+    }
+
+    await reviewModel.deleteReview(parseInt(reviewId));
+
+    return new NextResponse("Review deleted successfully", {
       status: 200,
       headers: corsHeaders,
     });
   } catch (err) {
-    console.error("[GET Error]", err);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    console.error("[reviews_DELETE]", err);
+    return new NextResponse("Internal Server Error", {
+      status: 500,
+      headers: corsHeaders,
+    });
   }
 };

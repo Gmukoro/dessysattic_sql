@@ -1,6 +1,6 @@
-import { DataTable } from "@/components/custom ui/DataTable";
-import { columns } from "@/components/orderItems/OrderItemsColums";
-import MainLayout from "@/components/MainLayout";
+import { DataTable } from "@/components/admincomponents/custom ui/DataTable";
+import { columns } from "@/components/admincomponents/orderItems/OrderItemsColums";
+import MainLayout from "@/components/admincomponents/MainLayout";
 
 const OrderDetails = async ({ params }: { params: { orderId: string } }) => {
   const res = await fetch(

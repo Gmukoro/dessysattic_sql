@@ -1,18 +1,11 @@
-//app\api\products\[productId]\route.ts
-
 import { NextRequest, NextResponse } from "next/server";
-import { Op } from "sequelize";
 import { auth } from "@/auth";
-import Product from "@/lib/models/Product";
-import Collection from "@/lib/models/Collection";
-import sequelize from "@/app/api/sequelize.config";
-
-// Initialize the Sequelize connection.
-await sequelize!.authenticate();
-
-// Define associations
-Product.belongsToMany(Collection, { through: "ProductCollections" });
-Collection.belongsToMany(Product, { through: "ProductCollections" });
+import {
+  getProductById,
+  updateProduct,
+  deleteProduct,
+  updateProductCollections,
+} from "@/lib/models/Product";
 
 // GET Product by ID
 export const GET = async (
@@ -20,16 +13,14 @@ export const GET = async (
   { params }: { params: { productId: string } }
 ) => {
   try {
-    const product = await Product.findOne({
-      where: { id: params.productId },
-      include: Collection,
-    });
+    const productId = parseInt(params.productId, 10); // Parse productId safely
+    if (isNaN(productId)) {
+      return new NextResponse("Invalid product ID", { status: 400 });
+    }
 
+    const product = await getProductById(productId);
     if (!product) {
-      return new NextResponse(
-        JSON.stringify({ message: "Product not found" }),
-        { status: 404 }
-      );
+      return new NextResponse("Product not found", { status: 404 });
     }
 
     return new NextResponse(JSON.stringify(product), {
@@ -41,8 +32,8 @@ export const GET = async (
       },
     });
   } catch (err) {
-    console.log("[productId_GET]", err);
-    return new NextResponse("Internal error", { status: 500 });
+    console.error("[productId_GET]", err);
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 };
 
@@ -57,57 +48,31 @@ export const POST = async (
       return new NextResponse("Unauthorized", { status: 403 });
     }
 
-    const product = await Product.findByPk(params.productId);
-
-    if (!product) {
-      return new NextResponse(
-        JSON.stringify({ message: "Product not found" }),
-        { status: 404 }
-      );
+    const productId = parseInt(params.productId, 10);
+    if (isNaN(productId)) {
+      return new NextResponse("Invalid product ID", { status: 400 });
     }
 
-    const {
-      title,
-      description,
-      media,
-      category,
-      collections,
-      tags,
-      sizes,
-      colors,
-      price,
-      expense,
-    } = await req.json();
+    const updateData = await req.json();
+    if (!updateData.title || !updateData.category || !updateData.price) {
+      return new NextResponse("Missing required fields", { status: 400 });
+    }
 
-    // Update product details
-    await product.update({
-      title,
-      description,
-      media,
-      category,
-      tags,
-      sizes,
-      colors,
-      price,
-      expense,
-    });
+    const updatedProduct = await updateProduct(productId, updateData);
 
     // Update associated collections
-    if (collections) {
-      const associatedCollections = await Collection.findAll({
-        where: { id: collections },
-      });
-      await product.setCollections(associatedCollections);
+    if (updateData.collections) {
+      await updateProductCollections(productId, updateData.collections);
     }
 
-    return new NextResponse(JSON.stringify(product), { status: 200 });
+    return new NextResponse(JSON.stringify(updatedProduct), { status: 200 });
   } catch (err) {
-    console.log("[productId_POST]", err);
-    return new NextResponse("Internal error", { status: 500 });
+    console.error("[productId_POST]", err);
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 };
 
-// DELETE: Remove Product and Update Collections
+// DELETE: Remove Product
 export const DELETE = async (
   req: NextRequest,
   { params }: { params: { productId: string } }
@@ -118,24 +83,16 @@ export const DELETE = async (
       return new NextResponse("Unauthorized", { status: 403 });
     }
 
-    const product = await Product.findByPk(params.productId);
-
-    if (!product) {
-      return new NextResponse(
-        JSON.stringify({ message: "Product not found" }),
-        { status: 404 }
-      );
+    const productId = parseInt(params.productId, 10);
+    if (isNaN(productId)) {
+      return new NextResponse("Invalid product ID", { status: 400 });
     }
 
-    // Delete the product
-    await product.destroy();
-
-    return new NextResponse(JSON.stringify({ message: "Product deleted" }), {
-      status: 200,
-    });
+    await deleteProduct(productId);
+    return new NextResponse("Product deleted successfully", { status: 200 });
   } catch (err) {
-    console.log("[productId_DELETE]", err);
-    return new NextResponse("Internal error", { status: 500 });
+    console.error("[productId_DELETE]", err);
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 };
 

@@ -2,12 +2,11 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import Product from "@/lib/models/Product";
-import Collection from "@/lib/models/Collection";
-import sequelize from "@/app/api/sequelize.config";
-
-// Connect to the database
-await sequelize!.authenticate();
+import {
+  createProduct,
+  getAllProducts,
+  addProductToCollection,
+} from "@/lib/models/Product";
 
 // POST: Create a new product
 export const POST = async (req: NextRequest) => {
@@ -17,64 +16,32 @@ export const POST = async (req: NextRequest) => {
       return new NextResponse("Unauthorized", { status: 403 });
     }
 
-    const {
-      title,
-      description,
-      media,
-      category,
-      collections,
-      tags,
-      sizes,
-      colors,
-      price,
-      expense,
-    } = await req.json();
+    const productData = await req.json();
+    const newProduct = await createProduct(productData);
 
-    if (!title || !description || !media || !category || !price || !expense) {
-      return new NextResponse("Not enough data to create a product", {
-        status: 400,
-      });
+    if (productData.collections && productData.collections.length > 0) {
+      await Promise.all(
+        productData.collections.map((collectionId: number) =>
+          addProductToCollection(newProduct.id, collectionId)
+        )
+      );
     }
 
-    const newProduct = await Product.create({
-      title,
-      description,
-      media,
-      category,
-      tags,
-      sizes,
-      colors,
-      price,
-      expense,
-    });
-
-    // Add associated collections
-    if (collections && collections.length > 0) {
-      const associatedCollections = await Collection.findAll({
-        where: { id: collections },
-      });
-      await newProduct.setCollections(associatedCollections);
-    }
-
-    return NextResponse.json(newProduct, { status: 200 });
+    return NextResponse.json(newProduct, { status: 201 });
   } catch (err) {
     console.log("[products_POST]", err);
-    return new NextResponse("Internal Error", { status: 500 });
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 };
 
 // GET: Fetch all products
 export const GET = async () => {
   try {
-    const products = await Product.findAll({
-      order: [["createdAt", "DESC"]],
-      include: Collection, // Includes collections in the product data
-    });
-
+    const products = await getAllProducts();
     return NextResponse.json(products, { status: 200 });
   } catch (err) {
     console.log("[products_GET]", err);
-    return new NextResponse("Internal Error", { status: 500 });
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 };
 

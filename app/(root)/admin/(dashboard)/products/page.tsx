@@ -4,14 +4,12 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 
-import Loader from "@/components/custom ui/Loader";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { DataTable } from "@/components/custom ui/DataTable";
-import { columns } from "@/components/products/ProductColumns";
-import MainLayout from "@/components/MainLayout";
-
-import { ProductType } from "@/lib/types";
+import Loader from "@/components/admincomponents/custom ui/Loader";
+import { Button } from "@/components/admincomponents/ui/button";
+import { Separator } from "@/components/admincomponents/ui/separator";
+import { DataTable } from "@/components/admincomponents/custom ui/DataTable";
+import { columns } from "@/components/admincomponents/products/ProductColumns";
+import MainLayout from "@/components/admincomponents/MainLayout";
 
 const Products = () => {
   const router = useRouter();

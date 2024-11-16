@@ -1,10 +1,10 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { getReviews } from "@/lib/actions/actions";
 import { auth } from "@/auth";
 import { useSession } from "next-auth/react";
 import { AiFillStar } from "react-icons/ai";
+import { getReviewsByProductId } from "@/lib/models/reviews";
 
 interface Review {
   _id: null | undefined;
@@ -36,8 +36,8 @@ const Reviews: React.FC<ReviewsProps> = ({ productId }) => {
   useEffect(() => {
     const fetchReviews = async () => {
       try {
-        const data = await getReviews(productId);
-        setReviews(data ?? []);
+        const data = await getReviewsByProductId(productId);
+        setReviews(data as Review[]);
       } catch (err) {
         setError("Failed to fetch reviews. Please try again later.");
         setTimeout(() => setError(null), 3000);
@@ -80,11 +80,9 @@ const Reviews: React.FC<ReviewsProps> = ({ productId }) => {
 
       setLoading(true);
 
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/review`,
-        newReview,
-        { headers: { "Content-Type": "application/json" } }
-      );
+      const response = await axios.post(`api/review`, newReview, {
+        headers: { "Content-Type": "application/json" },
+      });
 
       if (response.status === 201) {
         setReviews((prev) => [...prev, response.data]);

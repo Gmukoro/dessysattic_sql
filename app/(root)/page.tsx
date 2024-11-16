@@ -1,3 +1,5 @@
+// app/page.tsx
+
 import React from "react";
 import ProductList from "@/components/ProductList";
 import BestSellers from "@/components/Best_sellers";
@@ -6,6 +8,7 @@ import VideoPlayer from "@/components/VideoPlayer";
 import Link from "next/link";
 import ReviewsComponent from "@/components/allReviews";
 import ShippingOfferModal from "@/components/ShippingOfferModal";
+import Loading from "@/components/Loading";
 
 export default function Home() {
   return (
@@ -16,7 +19,7 @@ export default function Home() {
           <h1 className="text-heading1-bold sm:text-6xl md:text-8xl lg:text-9xl xl:text-[100px]">
             Próta
           </h1>
-          <p className="heading2-bold text-amber-950 mlsm:text-xl md:text-2xl">
+          <p className="heading2-bold text-amber-950 sm:text-xl md:text-2xl">
             Wear your confidence
           </p>
           <Link href="/new_arrivals" passHref>
@@ -42,5 +45,3 @@ export default function Home() {
     </>
   );
 }
-
-export const dynamic = "force-dynamic";

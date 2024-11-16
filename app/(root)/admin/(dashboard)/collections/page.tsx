@@ -4,12 +4,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 
-import { columns } from "@/components/collections/CollectionColumns";
-import { DataTable } from "@/components/custom ui/DataTable";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import Loader from "@/components/custom ui/Loader";
-import MainLayout from "@/components/MainLayout";
+import { columns } from "@/components/admincomponents/collections/CollectionColumns";
+import { DataTable } from "@/components/admincomponents/custom ui/DataTable";
+import { Button } from "@/components/admincomponents/ui/button";
+import { Separator } from "@/components/admincomponents/ui/separator";
+import Loader from "@/components/admincomponents/custom ui/Loader";
+import MainLayout from "@/components/admincomponents/MainLayout";
 
 const Collections = () => {
   const router = useRouter();

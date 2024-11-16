@@ -1,9 +1,12 @@
-//app\api\newsletter\route.ts
-
-import Newsletter from "@/lib/models/newsletter";
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
-import { ValidationError } from "sequelize";
+import { query } from "@/lib/database";
+
+// Define the attributes for the Newsletter interface
+interface NewsletterAttributes {
+  email: string;
+  date: Date;
+}
 
 // Configure nodemailer for Gmail
 const transporter = nodemailer.createTransport({
@@ -19,24 +22,30 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// POST - Add email to the newsletter
 export async function POST(request: Request) {
   try {
     const data = await request.json();
     const { email } = data;
 
-    // Insert new newsletter subscription using Sequelize model for MySQL
-    const contactMessage = await Newsletter.create({ email });
+    // Insert new email into the newsletter list in MySQL
+    const insertQuery = `
+      INSERT INTO newsletters (email, date)
+      VALUES (?, NOW())
+      ON DUPLICATE KEY UPDATE date = NOW()
+    `;
+    await query({ query: insertQuery, values: [email] });
 
-    // Email to admin about the new subscription
-    const mailOptions = {
+    // Notify admin of the new subscription
+    const adminMailOptions = {
       from: process.env.EMAIL_USER,
       to: "dessysattic@gmail.com",
       subject: "New Newsletter Signup",
       text: `You have a new subscriber: ${email}`,
     };
-    await transporter.sendMail(mailOptions);
+    await transporter.sendMail(adminMailOptions);
 
-    // Confirmation email to the user
+    // Send confirmation to the subscriber
     const customerMailOptions = {
       from: process.env.EMAIL_USER,
       to: email,
@@ -46,13 +55,13 @@ export async function POST(request: Request) {
     await transporter.sendMail(customerMailOptions);
 
     return NextResponse.json({
-      msg: ["Message sent successfully"],
+      msg: "Successfully subscribed to the newsletter!",
       success: true,
     });
-  } catch (error: unknown) {
+  } catch (error) {
     console.error("Error during newsletter signup:", error);
 
-    // Handle unique constraint error (e.g., duplicate email)
+    // Handle duplicate email entry error
     if ((error as any).code === "ER_DUP_ENTRY") {
       return NextResponse.json({
         msg: "This email is already subscribed to the newsletter.",
@@ -60,21 +69,61 @@ export async function POST(request: Request) {
       });
     }
 
-    // Check if the error is a SequelizeValidationError
-    if (error instanceof ValidationError) {
-      let errorList = [];
-      // Access the validation errors if it's a SequelizeValidationError
-      for (let e of error.errors) {
-        console.log(e.message);
-        errorList.push(e.message);
-      }
-      console.log("Validation Errors:", errorList);
-      return NextResponse.json({ msg: errorList, success: false });
-    } else {
-      return NextResponse.json({
-        msg: "Unable to send message",
-        success: false,
-      });
-    }
+    return NextResponse.json({
+      msg: "Unable to process the subscription request.",
+      success: false,
+    });
+  }
+}
+
+// DELETE - Remove email from the newsletter
+export async function DELETE(request: Request) {
+  try {
+    const data = await request.json();
+    const { email } = data;
+
+    // Remove the email from the newsletter list in MySQL
+    const deleteQuery = `DELETE FROM newsletters WHERE email = ?`;
+    await query({ query: deleteQuery, values: [email] });
+
+    return NextResponse.json({
+      msg: "Successfully unsubscribed from the newsletter.",
+      success: true,
+    });
+  } catch (error) {
+    console.error("Error unsubscribing from the newsletter:", error);
+
+    return NextResponse.json({
+      msg: "Unable to process the unsubscription request.",
+      success: false,
+    });
+  }
+}
+
+// GET - Retrieve all subscribed emails
+export async function GET() {
+  try {
+    const selectQuery = `SELECT * FROM newsletters`;
+    const emails = await query({ query: selectQuery });
+
+    // Type guard to ensure emails is an array of RowDataPacket
+    const formattedEmails = Array.isArray(emails)
+      ? emails.map((email: any) => ({
+          email: email.email,
+          date: email.date,
+        }))
+      : [];
+
+    return NextResponse.json({
+      emails: formattedEmails,
+      success: true,
+    });
+  } catch (error) {
+    console.error("Error retrieving newsletter emails:", error);
+
+    return NextResponse.json({
+      msg: "Unable to retrieve the list of subscribers.",
+      success: false,
+    });
   }
 }

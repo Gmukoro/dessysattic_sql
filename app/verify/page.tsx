@@ -3,7 +3,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import User from "@/lib/models/user";
 import VerificationToken from "@/lib/models/verificationToken";
-import sequelize from "@/app/api/sequelize.config";
 
 export const verifyUser = async (req: NextRequest) => {
   try {

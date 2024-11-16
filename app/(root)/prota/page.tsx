@@ -1,13 +1,22 @@
+"use client";
+
+import { useRouter, useParams } from "next/navigation";
 import ProductCard from "@/components/ProductCard";
-import { getCollectionDetails } from "@/lib/actions/actions";
-import { ProductType } from "@/lib/types";
+import { getCollectionById } from "@/lib/models/Collection";
 
 const ProtaPage = async () => {
-  const protaCollectionId = "66ee1ec8ebf40ec55768d0e1";
-  let protaCollection;
+  const router = useRouter();
+  const { collectionId } = useParams();
+
+  if (!collectionId) {
+    return <p className="text-body-bold">Loading...</p>;
+  }
+
+  let protaCollection: CollectionType | null = null;
 
   try {
-    protaCollection = await getCollectionDetails(protaCollectionId);
+    const collectionIdNumber = parseInt(collectionId as string, 10);
+    protaCollection = await getCollectionById(collectionIdNumber);
     console.log("Prota Collection:", protaCollection);
   } catch (error) {
     console.error("Error fetching the Prota collection:", error);
@@ -19,10 +28,12 @@ const ProtaPage = async () => {
       <h1 className="text-heading2-bold text-4xl font-bold mb-8 bg-gradient-to-r from-yellow-600 via-yellow-900 to-amber-800 text-white py-4 px-8 rounded-lg ">
         Prota Collection
       </h1>
-      {protaCollection && protaCollection.products.length > 0 ? (
+      {protaCollection &&
+      protaCollection.products &&
+      protaCollection.products.length > 0 ? (
         <div className="flex flex-wrap gap-16 justify-center">
           {protaCollection.products.map((product: ProductType) => (
-            <ProductCard key={product._id} product={product} />
+            <ProductCard key={product.id} product={product} />
           ))}
         </div>
       ) : (
@@ -33,5 +44,4 @@ const ProtaPage = async () => {
 };
 
 export const dynamic = "force-dynamic";
-
 export default ProtaPage;

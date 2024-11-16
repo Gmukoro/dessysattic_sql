@@ -1,11 +1,16 @@
 import ProductCard from "@/components/ProductCard";
-import { getSearchedProducts } from "@/lib/actions/actions";
-import { ProductType } from "@/lib/types";
+import { NextRequest } from "next/server";
 
 const SearchPage = async ({ params }: { params: { query: string } }) => {
-  const searchedProducts = await getSearchedProducts(params.query);
+  const searchQuery = params.query;
 
-  const decodedQuery = decodeURIComponent(params.query);
+  // Fetch search results from the API endpoint
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/search/${searchQuery}`
+  );
+  const searchedProducts = await response.json();
+
+  const decodedQuery = decodeURIComponent(searchQuery);
 
   return (
     <div className="px-10 py-5">
@@ -18,10 +23,7 @@ const SearchPage = async ({ params }: { params: { query: string } }) => {
         ))}
       <div className="flex flex-wrap justify-between gap-16">
         {searchedProducts?.map((product: ProductType) => (
-          <ProductCard
-            key={product._id}
-            product={product}
-          />
+          <ProductCard key={product._id} product={product} />
         ))}
       </div>
     </div>

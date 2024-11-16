@@ -1,9 +1,10 @@
+
+
 "use client";
 import { useCurrencyContext } from "@/lib/context/currencyContext";
 import Image from "next/image";
 import Link from "next/link";
 import HeartFavorite from "./HeartFavorite";
-import { BaseUserDoc, ProductType } from "@/lib/types";
 
 interface ProductCardProps {
   product: ProductType;
@@ -13,17 +14,39 @@ interface ProductCardProps {
 const ProductCard = ({ product, updateSignedInUser }: ProductCardProps) => {
   const { selectedCurrency, convertPrice } = useCurrencyContext();
 
+  const parsePrice = (price: any): number => {
+    try {
+      const parsed = JSON.parse(price);
+      return parseFloat(parsed["$numberDecimal"]);
+    } catch {
+      return parseFloat(price);
+    }
+  };
+
+  // Parse the product price before using it
+  const parsedPrice = parsePrice(product.price);
+
+  // Determine the correct image source (fallback if needed)
+  const imageSrc =
+    product.media?.[0] ||
+    product.media?.[1] ||
+    product.media?.[2] ||
+    "/images/default-product.jpg";
+
   return (
     <Link
-      href={`/products/${product._id}`}
+      href={`/products/${product.id}`}
       className="w-[220px] flex flex-col gap-2"
     >
       <Image
-        src={product.media[0] || product.media[1] || product.media[2]}
-        alt="product"
+        src={imageSrc}
+        alt={product.title}
         width={250}
         height={300}
         className="h-[250px] rounded-lg object-cover"
+        // Provide a blur-up effect while loading the image
+        placeholder="blur"
+        blurDataURL="/images/blur-placeholder.jpg"
       />
       <div>
         <p className="text-base-bold text-amber-900">{product.title}</p>
@@ -36,7 +59,7 @@ const ProductCard = ({ product, updateSignedInUser }: ProductCardProps) => {
           {selectedCurrency === "CAD" && "CA$"}
           {selectedCurrency === "NGN" && "₦"}
           {selectedCurrency === "GBP" && "£"}{" "}
-          {convertPrice(product.price, "EUR", selectedCurrency).toFixed(2)}
+          {convertPrice(parsedPrice, "EUR", selectedCurrency).toFixed(2)}
         </p>
         <HeartFavorite product={product} />
       </div>

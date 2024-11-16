@@ -1,3 +1,5 @@
+//app\(root)\layout.tsx
+
 import { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { SessionProvider, useSession } from "next-auth/react";
@@ -16,7 +18,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "DSY Store",
-  description: "DSY Ecommerce Store",
+  description: "DSY: WEAR YOUR CONFIDENCE ",
 };
 
 const RootLayout = async ({ children }: { children: React.ReactNode }) => {
@@ -24,7 +26,7 @@ const RootLayout = async ({ children }: { children: React.ReactNode }) => {
     <html lang="en">
       <body className={inter.className}>
         <Providers>
-          <SessionProvider session={await auth()}>
+          <SessionProvider>
             <SessionContent>{children}</SessionContent>
           </SessionProvider>
         </Providers>

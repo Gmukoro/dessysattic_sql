@@ -1,10 +1,11 @@
+//app\(root)\wishlist\page.tsx
+
 "use client";
 
 import Loader from "@/components/Loader";
 import ProductCard from "@/components/ProductCard";
-import { getProductDetails } from "@/lib/actions/actions";
+import { getProductById } from "@/lib/models/Product";
 import { useEffect, useState } from "react";
-import { BaseUserDoc, ProductType } from "@/lib/types";
 import { useSession } from "next-auth/react";
 
 const Wishlist = () => {
@@ -21,10 +22,9 @@ const Wishlist = () => {
       const data = await res.json();
       setSignedInUser(data);
     } catch (err: unknown) {
-      // Assert the error is of type Error
       if (err instanceof Error) {
         console.error("[users_GET]", err.message);
-        setError(err.message); // Store the error message in state
+        setError(err.message);
       } else {
         console.error("[users_GET]", "Unknown error occurred.");
         setError("Unknown error occurred.");
@@ -47,24 +47,18 @@ const Wishlist = () => {
     }
 
     const wishlistProducts = await Promise.all(
-      signedInUser.wishlist.map(async (productId) => {
-        const res = await getProductDetails(productId);
-        return res;
+      signedInUser.wishlist.map(async (productId: string) => {
+        const product = await getProductById(Number(productId));
+        return product;
       })
     );
 
-    setWishlist(wishlistProducts);
+    const validWishlistProducts = wishlistProducts.filter(
+      (product) => product !== null
+    );
+
+    setWishlist(validWishlistProducts as unknown as ProductType[]);
     setLoading(false);
-  };
-
-  useEffect(() => {
-    if (signedInUser) {
-      getWishlistProducts();
-    }
-  }, [signedInUser]);
-
-  const updateSignedInUser = (updatedUser: BaseUserDoc) => {
-    setSignedInUser(updatedUser);
   };
 
   return (
@@ -80,13 +74,19 @@ const Wishlist = () => {
       )}
 
       <div className="flex flex-wrap justify-center gap-16">
-        {wishlist.map((product) => (
-          <ProductCard
-            key={product._id}
-            product={product}
-            updateSignedInUser={updateSignedInUser}
-          />
-        ))}
+        {wishlist
+          .filter((product) => product !== null)
+          .map((product) => (
+            <ProductCard
+              key={product.id}
+              product={product as ProductType}
+              updateSignedInUser={
+                signedInUser
+                  ? (updatedUser: BaseUserDoc) => setSignedInUser(updatedUser)
+                  : undefined
+              }
+            />
+          ))}
       </div>
     </div>
   );

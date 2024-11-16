@@ -1,40 +1,43 @@
-//app\api\orders\[orderId]\route.ts
-
-import Order from "@/lib/models/Order";
-import Product from "@/lib/models/Product";
-import sequelize from "@/app/api/sequelize.config";
+import { query } from "@/lib/database";
 import { NextRequest, NextResponse } from "next/server";
+import { RowDataPacket } from "mysql2"; // Ensure RowDataPacket is imported
 
-// Fetch orders by customerId
 export const GET = async (
   req: NextRequest,
   { params }: { params: { customerId: string } }
 ) => {
   try {
-    await sequelize!.authenticate();
+    // Fetch orders for a customer
+    const ordersQuery = `
+      SELECT * FROM orders WHERE customerId = ?;
+    `;
+    const ordersResult = (await query({
+      query: ordersQuery,
+      values: [params.customerId],
+    })) as RowDataPacket[];
 
-    // Fetch orders associated with the given customerId
-    const orders = await Order.findAll({
-      where: {
-        customerid: params.customerId,
-      },
-      include: [
-        {
-          model: Product,
-          as: "products",
-          attributes: ["id", "name", "price"],
-        },
-      ],
-    });
-
-    if (!orders.length) {
+    if (ordersResult.length === 0) {
       return new NextResponse(
         JSON.stringify({ message: "No orders found for this customer" }),
         { status: 404 }
       );
     }
 
-    return NextResponse.json(orders, { status: 200 });
+    // Fetch product details for each order
+    const orderDetails = [];
+    for (const order of ordersResult) {
+      const productsQuery = `
+        SELECT * FROM products WHERE _id IN (SELECT product FROM JSON_EXTRACT(?, '$[*].product'));
+      `;
+      const productsResult = (await query({
+        query: productsQuery,
+        values: [order.products],
+      })) as RowDataPacket[]; // Type assertion to RowDataPacket[]
+
+      orderDetails.push({ ...order, products: productsResult });
+    }
+
+    return NextResponse.json(orderDetails, { status: 200 });
   } catch (err) {
     console.error("[customerId_GET]", err);
     return new NextResponse("Internal Server Error", { status: 500 });

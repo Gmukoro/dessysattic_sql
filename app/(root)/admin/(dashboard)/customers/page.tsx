@@ -1,13 +1,13 @@
-import { DataTable } from "@/components/custom ui/DataTable";
-import { columns } from "@/components/customers/CustomerColumns";
-import { Separator } from "@/components/ui/separator";
+import { DataTable } from "@/components/admincomponents/custom ui/DataTable";
+import { columns } from "@/components/admincomponents/customers/CustomerColumns";
+import { Separator } from "@/components/admincomponents/ui/separator";
 import Customer from "@/lib/models/Customer";
-import { connectToDB } from "@/lib/mongoDB";
-import MainLayout from "@/components/MainLayout";
-await connectToDB();
+import MainLayout from "@/components/admincomponents/MainLayout";
 
 const Customers = async () => {
-  const customers = await Customer.find().sort({ createdAt: "desc" });
+  const customers = await Customer.findAll({
+    order: [["createdAt", "DESC"]],
+  });
 
   return (
     <MainLayout>

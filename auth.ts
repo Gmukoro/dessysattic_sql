@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { signInSchema } from "@/utils/verificationSchema";
-import UserModel from "@/lib/models/user";
+import { getUserByEmail } from "@/lib/models/user";
 
 export interface SessionUserProfile {
   id: string;
@@ -18,13 +18,6 @@ declare module "next-auth" {
   }
 }
 
-class CustomError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "CustomError";
-  }
-}
-
 export const {
   auth,
   handlers: { GET, POST },
@@ -34,36 +27,30 @@ export const {
 } = NextAuth({
   providers: [
     Credentials({
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
-      },
-      async authorize(credentials) {
+      async authorize(credentials: any) {
         const result = signInSchema.safeParse(credentials);
         if (!result.success) {
-          throw new CustomError("Please provide a valid email & password!");
+          throw new Error("Please provide a valid email & password!");
         }
 
         const { email, password } = result.data;
 
-        // Fetch user from Sequelize (MySQL)
-        const user = await UserModel.findOne({ where: { email } });
-        if (!user) {
-          throw new CustomError("User not found!");
-        }
-
-        // Compare password directly using bcrypt
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        if (!isPasswordValid) {
-          throw new CustomError("Incorrect password!");
+        // Fetch user from the database
+        const user = await getUserByEmail(email);
+        if (
+          !user ||
+          !user.password ||
+          !bcrypt.compareSync(password, user.password)
+        ) {
+          throw new Error("Email/Password mismatched!");
         }
 
         return {
-          id: user.id.toString(),
+          id: user.id,
           email: user.email,
           name: user.name,
           verified: user.verified,
-          avatar: user.avatar,
+          avatar: user.avatar?.url,
         };
       },
     }),
@@ -71,7 +58,23 @@ export const {
   callbacks: {
     async jwt({ token, user, trigger, session }) {
       if (user) {
-        token = { ...token, ...user };
+        // Ensure user.email is defined
+        if (!user.email) {
+          throw new Error("User email is missing.");
+        }
+
+        // Fetch user data from the database
+        const dbUser = await getUserByEmail(user.email);
+        if (dbUser) {
+          token = {
+            ...token,
+            id: dbUser.id,
+            email: dbUser.email,
+            name: dbUser.name,
+            verified: dbUser.verified,
+            avatar: dbUser.avatar?.url,
+          };
+        }
       }
 
       if (trigger === "update") {

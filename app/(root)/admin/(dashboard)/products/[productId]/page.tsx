@@ -2,11 +2,9 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { getProductDetails } from "@/utils/dataFetchers";
-import Loader from "@/components/custom ui/Loader";
-import ProductForm from "@/components/products/ProductForm";
-import MainLayout from "@/components/MainLayout";
-
-import { ProductType } from "@/lib/types";
+import Loader from "@/components//admincomponents/custom ui/Loader";
+import ProductForm from "@/components//admincomponents/products/ProductForm";
+import MainLayout from "@/components/admincomponents/MainLayout";
 
 const ProductDetails = ({ params }: { params: { productId: string } }) => {
   const [loading, setLoading] = useState(true);
@@ -15,7 +13,7 @@ const ProductDetails = ({ params }: { params: { productId: string } }) => {
   );
 
   const fetchProductDetails = useCallback(async () => {
-    const data = await getProductDetails(params.productId); // Use the server-side function
+    const data = await getProductDetails(params.productId);
     setProductDetails(data);
     setLoading(false);
   }, [params.productId]);

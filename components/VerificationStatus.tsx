@@ -12,7 +12,10 @@ interface Props {
 const message = "Please check your inbox to verify your email.";
 
 const VerificationStatus: FC<Props> = ({ visible }) => {
-  const [state, action] = useActionState(generateVerificationLink, {});
+  const [state, action] = useActionState(generateVerificationLink, {
+    success: false,
+  });
+
   if (!visible) return null;
 
   if (state.success) {

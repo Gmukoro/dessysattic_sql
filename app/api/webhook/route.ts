@@ -1,18 +1,14 @@
-//app\api\webhook\route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
-import sequelize from "@/app/api/sequelize.config";
-import Customer from "@/lib/models/Customer";
-import Order from "@/lib/models/Order";
+import { createCustomer, getCustomerById } from "@/lib/models/Customer";
+import { createOrder } from "@/lib/models/Order";
+import { query } from "@/lib/database";
 
+// Webhook POST handler
 export const POST = async (req: NextRequest) => {
   try {
-    // Ensure the connection to the MySQL database is established
-    await sequelize!.authenticate();
-
     const rawBody = await req.text();
-    const signature = req.headers.get("Stripe-Signature") as string;
+    const signature = req.headers.get("Stripe-Signature") || "";
 
     const event = stripe.webhooks.constructEvent(
       rawBody,
@@ -21,20 +17,20 @@ export const POST = async (req: NextRequest) => {
     );
 
     if (event.type === "checkout.session.completed") {
-      const session = event.data.object;
+      const session = event.data.object as any;
 
       const customerInfo = {
-        userId: session?.client_reference_id,
-        name: session?.customer_details?.name,
-        email: session?.customer_details?.email,
+        userId: session?.client_reference_id || "",
+        name: session?.customer_details?.name || "Unknown",
+        email: session?.customer_details?.email || "",
       };
 
       const shippingAddress = {
-        street: session?.shipping_details?.address?.line1,
-        city: session?.shipping_details?.address?.city,
-        state: session?.shipping_details?.address?.state,
-        postalCode: session?.shipping_details?.address?.postal_code,
-        country: session?.shipping_details?.address?.country,
+        street: session?.shipping_details?.address?.line1 || "",
+        city: session?.shipping_details?.address?.city || "",
+        state: session?.shipping_details?.address?.state || "",
+        postalCode: session?.shipping_details?.address?.postal_code || "",
+        country: session?.shipping_details?.address?.country || "",
       };
 
       const retrieveSession = await stripe.checkout.sessions.retrieve(
@@ -42,43 +38,51 @@ export const POST = async (req: NextRequest) => {
         { expand: ["line_items.data.price.product"] }
       );
 
-      const lineItems = await retrieveSession?.line_items?.data;
+      const lineItems = retrieveSession?.line_items?.data || [];
 
-      const orderItems = lineItems?.map((item: any) => {
-        return {
-          product: item.price.product.metadata.productId,
-          color: item.price.product.metadata.color || "N/A",
-          size: item.price.product.metadata.size || "N/A",
-          quantity: item.quantity,
-        };
-      });
+      const orderItems = lineItems.map((item: any) => ({
+        product: item.price.product.metadata.productId || "",
+        color: item.price.product.metadata.color || "N/A",
+        size: item.price.product.metadata.size || "N/A",
+        quantity: item.quantity || 1,
+      }));
 
-      // Create a new order entry in the database
-      const newOrder = await Order.create({
-        customerId: customerInfo.userId,
+      // Insert the order into the database
+      const newOrder = {
+        _id: session.id,
         products: orderItems,
         shippingAddress,
-        shippingRate: session?.shipping_cost?.shipping_rate,
+        shippingRate: session?.shipping_cost?.shipping_rate || "Standard",
         totalAmount: session.amount_total ? session.amount_total / 100 : 0,
-      });
+        customerId: customerInfo.userId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
 
-      let customer = await Customer.findOne({
-        where: { id: customerInfo.userId },
-      });
+      await createOrder(newOrder);
+
+      let customer = await getCustomerById(customerInfo.userId);
 
       if (customer) {
-        // Add the new order to the customer's orders list
-        await customer.addOrder(newOrder);
+        // Add the new order to the existing customer
+        await query({
+          query: `INSERT INTO orders (customerId, order_id) VALUES (?, ?);`,
+          values: [customerInfo.userId, newOrder._id],
+        });
       } else {
-        // If the customer doesn't exist, create a new one
-        customer = await Customer.create({
-          id: customerInfo.userId,
+        // If customer does not exist, create a new customer
+        await createCustomer({
+          userId: customerInfo.userId,
           name: customerInfo.name,
           email: customerInfo.email,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         });
 
-        // Add the new order to the new customer
-        await customer.addOrder(newOrder);
+        await query({
+          query: `INSERT INTO orders (customerId, order_id) VALUES (?, ?);`,
+          values: [customerInfo.userId, newOrder._id],
+        });
       }
     }
 

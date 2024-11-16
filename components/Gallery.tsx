@@ -6,9 +6,7 @@ import React, { useState } from "react";
 const Gallery = ({ productMedia }: { productMedia?: string[] }) => {
   // Set mainImage to the first image or a placeholder if productMedia is undefined or empty
   const [mainImage, setMainImage] = useState(
-    productMedia && productMedia.length > 0
-      ? productMedia[0]
-      : "/placeholder-image.png"
+    productMedia && productMedia.length > 0 ? productMedia[0] : ""
   );
 
   return (

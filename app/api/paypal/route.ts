@@ -1,48 +1,70 @@
-//app\api\paypal\route.ts
-
 import { NextRequest, NextResponse } from "next/server";
-import Customer from "@/lib/models/Customer";
-import Order from "@/lib/models/Order";
-import sequelize from "@/app/api/sequelize.config";
+import {
+  createCustomer,
+  getCustomerById,
+  updateCustomer,
+} from "@/lib/models/Customer";
+import { createOrder } from "@/lib/models/Order";
 
 const PAYPAL_API_BASE = "https://api-m.sandbox.paypal.com";
-
-async function generatePayPalToken(): Promise<string> {
-  await sequelize!.authenticate();
-
-  const response = await fetch(`${PAYPAL_API_BASE}/v1/oauth2/token`, {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${Buffer.from(
-        `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
-      ).toString("base64")}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: "grant_type=client_credentials",
-  });
-
-  const data = await response.json();
-  return data.access_token;
-}
-
-function calculateDeliveryFee(totalAmount: number): number {
-  return totalAmount < 15000 ? 500 : 0;
-}
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 } as const;
 
+// In-memory cache for storing the token and expiration
+let cachedToken: string | null = null;
+let tokenExpiration: number | null = null;
+
+// Function to generate a PayPal token with caching and error handling
+async function generatePayPalToken(): Promise<string | null> {
+  // Check if we have a valid cached token
+  if (cachedToken && tokenExpiration && Date.now() < tokenExpiration) {
+    return cachedToken;
+  }
+
+  try {
+    const response = await fetch(`${PAYPAL_API_BASE}/v1/oauth2/token`, {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${Buffer.from(
+          `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
+        ).toString("base64")}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: "grant_type=client_credentials",
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to get PayPal token");
+    }
+
+    const data = await response.json();
+    cachedToken = data.access_token;
+    tokenExpiration = Date.now() + data.expires_in * 1000;
+
+    return cachedToken;
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error("Error generating PayPal token:", error.message);
+    } else {
+      console.error("An unknown error occurred during PayPal token generation");
+    }
+    return null;
+  }
+}
+
+function calculateDeliveryFee(totalAmount: number): number {
+  return totalAmount < 15000 ? 500 : 0;
+}
+
+// POST request: Initiate PayPal order
 export async function POST(req: NextRequest) {
   try {
     const { cartItems, customer, delivery } = await req.json();
 
     if (!cartItems || !customer) {
-      return new NextResponse("Not enough data to checkout", { status: 400 });
-    }
-    {
       return new NextResponse("Not enough data to checkout", {
         status: 400,
         headers: corsHeaders,
@@ -56,10 +78,16 @@ export async function POST(req: NextRequest) {
     );
 
     const deliveryFee = calculateDeliveryFee(totalEuro);
-    const finalTotalEuro = totalEuro + deliveryFee / 100;
+    const finalTotalEuro = (totalEuro + deliveryFee) / 100;
 
     const token =
       process.env.PAYPAL_ACCESS_TOKEN || (await generatePayPalToken());
+    if (!token) {
+      return new NextResponse("Unable to generate PayPal token", {
+        status: 500,
+        headers: corsHeaders,
+      });
+    }
 
     const payPalOrder = await fetch(`${PAYPAL_API_BASE}/v2/checkout/orders`, {
       method: "POST",
@@ -96,32 +124,36 @@ export async function POST(req: NextRequest) {
         quantity: item.quantity,
       }));
 
-      const newOrder = new Order({
-        customerUserId: customer.customerId,
+      const newOrderData = {
+        _id: order.id,
         products: orderItems,
         shippingAddress: delivery,
-        shippingRate: deliveryFee,
-        totalAmount: finalTotalEuro,
-      });
+        shippingRate: deliveryFee.toString(),
+        totalAmount: parseFloat(finalTotalEuro.toFixed(2)),
+        createdAt: new Date(),
+        updatedAt: new Date(), 
+        customerId: customer.customerId,
+      };
 
-      await newOrder.save();
+      await createOrder(newOrderData);
 
-      let existingCustomer = await Customer.findOne({
-        where: { id: customer.customerId },
-      });
+      let existingCustomer = await getCustomerById(customer.customerId);
 
-      if (existingCustomer) {
-        existingCustomer?.orders.push(newOrder.id);
-      } else {
-        existingCustomer = new Customer({
-          id: customer.customerId,
+      if (!existingCustomer) {
+        const newCustomerData = {
+          userId: customer.customerId,
           name: customer.name,
           email: customer.email,
-          orders: [newOrder.id],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        await createCustomer(newCustomerData);
+      } else {
+        await updateCustomer(customer.customerId, {
+          email: customer.email,
+          name: customer.name,
         });
       }
-
-      await existingCustomer?.save();
 
       return NextResponse.json(
         {
@@ -135,46 +167,8 @@ export async function POST(req: NextRequest) {
         headers: corsHeaders,
       });
     }
-  } catch (err) {
-    console.log("[paypal_checkout_POST]", err);
-    return new NextResponse("Internal Server Error", {
-      status: 500,
-      headers: corsHeaders,
-    });
-  }
-}
-
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const token = searchParams.get("token");
-
-  try {
-    const accessToken =
-      process.env.PAYPAL_ACCESS_TOKEN || (await generatePayPalToken());
-
-    const verificationResponse = await fetch(
-      `${PAYPAL_API_BASE}/v2/checkout/orders/${token}/capture`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    const verificationData = await verificationResponse.json();
-
-    if (verificationData.status === "COMPLETED") {
-      return NextResponse.json(verificationData, { headers: corsHeaders });
-    } else {
-      return new NextResponse("Verification failed", {
-        status: 400,
-        headers: corsHeaders,
-      });
-    }
-  } catch (err) {
-    console.log("[paypal_checkout_GET]", err);
+  } catch (err: unknown) {
+    console.error("[paypal_checkout_POST]", err);
     return new NextResponse("Internal Server Error", {
       status: 500,
       headers: corsHeaders,

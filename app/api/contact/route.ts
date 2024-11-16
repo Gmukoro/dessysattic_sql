@@ -1,6 +1,4 @@
-//app\api\contact\route.ts
-
-import Contact from "@/lib/models/contact";
+import { query } from "@/lib/database";
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 
@@ -23,8 +21,12 @@ export async function POST(request: Request) {
     const data = await request.json();
     const { name, email, message } = data;
 
-    // Insert contact message into MySQL using Sequelize
-    const contactMessage = await Contact.create({ name, email, message });
+    // Insert contact message into MySQL using raw query
+    const insertQuery = `
+      INSERT INTO contacts (name, email, message, date) 
+      VALUES (?, ?, ?, NOW())
+    `;
+    await query({ query: insertQuery, values: [name, email, message] });
 
     // Email to admin
     const mailOptions = {

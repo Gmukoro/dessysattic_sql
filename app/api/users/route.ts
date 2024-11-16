@@ -2,23 +2,31 @@
 
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
-import User from "@/lib/models/user";
-import sequelize from "@/app/api/sequelize.config";
-
-await sequelize!.authenticate();
+import { getUserByEmail } from "@/lib/models/user";
 
 export async function GET(req: Request) {
   const session = await auth();
 
-  if (!session || !session.user || !session.user.id) {
+  // Check if session exists and user is authenticated
+  if (!session || !session.user || !session.user.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const user = await User.findByPk(session.user.id, { include: ["wishlist"] });
+  try {
+    // Fetch the user using the model function
+    const user = await getUserByEmail(session.user.email);
 
-  if (!user) {
-    return NextResponse.json({ error: "User not found" }, { status: 404 });
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Return the wishlist from the user model
+    return NextResponse.json({ wishlist: user.wishlist });
+  } catch (error) {
+    console.error("Error fetching user or wishlist:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
-
-  return NextResponse.json({ wishlist: user.wishlist });
 }
