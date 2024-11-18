@@ -1,3 +1,5 @@
+//lib\models\Order.ts
+
 import { query } from "@/lib/database";
 
 // Define interfaces for the Order model
@@ -172,6 +174,49 @@ export const deleteOrder = async (_id: string) => {
   }
 };
 
+export const getOrdersWithCustomerDetails = async (): Promise<
+  Array<
+    OrderAttributes & {
+      customerName: string;
+    }
+  >
+> => {
+  const selectQuery = `
+    SELECT 
+      orders._id, 
+      orders.products, 
+      orders.shippingAddress, 
+      orders.shippingRate, 
+      orders.totalAmount, 
+      orders.createdAt, 
+      orders.updatedAt, 
+      customers.name AS customerName 
+    FROM orders
+    JOIN customers ON orders.customerId = customers.id
+  `;
+
+  try {
+    const rows = await query({ query: selectQuery });
+
+    // Ensure rows are an array before proceeding
+    if (Array.isArray(rows)) {
+      return rows.map((row) => {
+        const order = row as {
+          products: string;
+          shippingAddress: string;
+        } & OrderAttributes & { customerName: string };
+        order.products = JSON.parse(order.products);
+        order.shippingAddress = JSON.parse(order.shippingAddress);
+        return order;
+      });
+    }
+    return [];
+  } catch (error) {
+    console.error("Error retrieving orders with customer details:", error);
+    throw error;
+  }
+};
+
 export default {
   initializeOrderTable,
   createOrder,
@@ -179,4 +224,5 @@ export default {
   getOrders,
   updateOrder,
   deleteOrder,
+  getOrdersWithCustomerDetails,
 };

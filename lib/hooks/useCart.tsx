@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { toast } from "react-hot-toast";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { ProductType } from "../types";
 
 interface CartItem {
   item: ProductType;
@@ -27,7 +26,7 @@ const useCart = create(
         const { item, quantity, color, size } = data;
         const currentItems = get().cartItems;
         const isExisting = currentItems.find(
-          (cartItem) => cartItem.item._id === item._id
+          (cartItem) => cartItem.item.id === item.id
         );
 
         if (isExisting) {
@@ -39,14 +38,14 @@ const useCart = create(
       },
       removeItem: (idToRemove: String) => {
         const newCartItems = get().cartItems.filter(
-          (cartItem) => cartItem.item._id !== idToRemove
+          (cartItem) => cartItem.item.id !== idToRemove
         );
         set({ cartItems: newCartItems });
         toast.success("Item removed from cart");
       },
       increaseQuantity: (idToIncrease: String) => {
         const newCartItems = get().cartItems.map((cartItem) =>
-          cartItem.item._id === idToIncrease
+          cartItem.item.id === idToIncrease
             ? { ...cartItem, quantity: cartItem.quantity + 1 }
             : cartItem
         );
@@ -55,7 +54,7 @@ const useCart = create(
       },
       decreaseQuantity: (idToDecrease: String) => {
         const newCartItems = get().cartItems.map((cartItem) =>
-          cartItem.item._id === idToDecrease
+          cartItem.item.id === idToDecrease
             ? { ...cartItem, quantity: cartItem.quantity - 1 }
             : cartItem
         );

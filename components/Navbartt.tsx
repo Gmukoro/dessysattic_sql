@@ -131,44 +131,53 @@ const MobileMenu: FC<MobileMenuProps> = React.memo(
       <div className="lg:hidden bg-gray-400 flex flex-col items-start mt-4 text-white p-4 rounded-lg shadow-lg">
         <Link
           href="/"
-          className="block py-2 hover:text-white hover:bg-gray-500 w-full text-left"
+          className="block p-1 hover:text-white hover:bg-gray-500 w-full text-left"
         >
           HOME
         </Link>
         <Link
           href="/brand"
-          className="block py-2 hover:text-white hover:bg-gray-500 w-full text-left"
+          className="block p-1 hover:text-white hover:bg-gray-500 w-full text-left"
         >
           BRAND
         </Link>
         <Link
           href={user ? "/wishlist" : "/sign-in"}
-          className="block py-2 hover:text-white hover:bg-gray-500 w-full text-left"
+          className="block p-1 hover:text-white hover:bg-gray-500 w-full text-left"
         >
           WISHLIST
         </Link>
         <Link
           href={user ? "/orders" : "/sign-in"}
-          className="block py-2 hover:text-white hover:bg-gray-500 w-full text-left"
+          className="block p-1 hover:text-white hover:bg-gray-500 w-full text-left"
         >
           ORDERS
         </Link>
         <button
           onClick={toggleShopDropdown}
-          className="block py-2 hover:text-white hover:bg-gray-500 w-full text-left"
+          className="block p-1 hover:text-white hover:bg-gray-500 w-full text-left"
         >
           SHOP
         </button>
         {isShopDropdownVisible && (
-          <div className="lg:hidden flex flex-col items-start mt-4 bg-white p-4 rounded-lg shadow-lg">
-            <h4 className="font-semibold text-lg">SHOP</h4>
-            <Link href="/best_sellers" className="block py-2 hover:text-white">
+          <div className="lg:hidden flex flex-col items-start mt-4 bg-gray-500 p-2 rounded-lg shadow-lg">
+            <h4 className="font-semibold text-lg p-1 text-gray-400">SHOP</h4>
+            <Link
+              href="/best_sellers"
+              className="block p-1 hover:text-white hover:bg-gray-400"
+            >
               Best Sellers
             </Link>
-            <Link href="/shop_all" className="block py-2 hover:text-white">
+            <Link
+              href="/shop_all"
+              className="block p-1 hover:text-white hover:bg-gray-400"
+            >
               Shop All
             </Link>
-            <Link href="/new_arrivals" className="block py-2 hover:text-white">
+            <Link
+              href="/new_arrivals"
+              className="block p-1 hover:text-white hover:bg-gray-400"
+            >
               New Arrivals
             </Link>
           </div>

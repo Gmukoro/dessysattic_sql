@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useCurrencyContext } from "@/lib/context/currencyContext";
 import useCart from "@/lib/hooks/useCart";
-import { auth } from "@/auth";
 import { useSession } from "next-auth/react";
 import { MinusCircle, PlusCircle, Trash } from "lucide-react";
 import Image from "next/image";
@@ -39,13 +38,26 @@ const Cart = () => {
     }
   }, [session]);
 
-  const total = cart.cartItems.reduce(
-    (acc, cartItem) =>
+  const parsePrice = (price: any): number => {
+    try {
+      const parsed = typeof price === "string" ? JSON.parse(price) : price;
+      return parsed && parsed["$numberDecimal"]
+        ? parseFloat(parsed["$numberDecimal"])
+        : parseFloat(price);
+    } catch (error) {
+      console.error("Error parsing price:", error, "Price value:", price);
+      return 0;
+    }
+  };
+
+  const total = cart.cartItems.reduce((acc, cartItem) => {
+    const parsedPrice = parsePrice(cartItem.item.price);
+    return (
       acc +
-      convertPrice(cartItem.item.price, "EUR", selectedCurrency) *
-        cartItem.quantity,
-    0
-  );
+      convertPrice(parsedPrice, "EUR", selectedCurrency) * cartItem.quantity
+    );
+  }, 0);
+
   const totalRounded = parseFloat(total.toFixed(2));
 
   // const delivery = "self";
@@ -107,7 +119,7 @@ const Cart = () => {
             {cart.cartItems.map((cartItem) => (
               <div
                 className="w-full flex max-sm:flex-col max-sm:gap-3 hover:bg-grey-1 px-4 py-3 items-center max-sm:items-start justify-between"
-                key={cartItem.item._id}
+                key={cartItem.item.id}
               >
                 <div className="flex items-center">
                   <Image
@@ -130,8 +142,9 @@ const Cart = () => {
                       {selectedCurrency === "EUR" && "€"}
                       {selectedCurrency === "CAD" && "CA$"}
                       {selectedCurrency === "NGN" && "₦"}
+                      {selectedCurrency === "GBP" && "£"}{" "}
                       {convertPrice(
-                        cartItem.item.price,
+                        parsePrice(cartItem.item.price),
                         "USD",
                         selectedCurrency
                       ).toFixed(2)}
@@ -142,18 +155,18 @@ const Cart = () => {
                 <div className="flex gap-4 items-center">
                   <MinusCircle
                     className="hover:text-red-1 cursor-pointer"
-                    onClick={() => cart.decreaseQuantity(cartItem.item._id)}
+                    onClick={() => cart.decreaseQuantity(cartItem.item.id)}
                   />
                   <p className="text-body-bold">{cartItem.quantity}</p>
                   <PlusCircle
                     className="hover:text-red-900 cursor-pointer"
-                    onClick={() => cart.increaseQuantity(cartItem.item._id)}
+                    onClick={() => cart.increaseQuantity(cartItem.item.id)}
                   />
                 </div>
 
                 <Trash
                   className="hover:text-red-1 cursor-pointer"
-                  onClick={() => cart.removeItem(cartItem.item._id)}
+                  onClick={() => cart.removeItem(cartItem.item.id)}
                 />
               </div>
             ))}

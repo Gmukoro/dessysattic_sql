@@ -1,20 +1,13 @@
-import { query } from "@/lib/database";
 import { NextRequest, NextResponse } from "next/server";
-import { RowDataPacket } from "mysql2"; // Ensure RowDataPacket is imported
+import { getOrders } from "@/lib/models/Order";
 
 export const GET = async (
   req: NextRequest,
   { params }: { params: { customerId: string } }
 ) => {
   try {
-    // Fetch orders for a customer
-    const ordersQuery = `
-      SELECT * FROM orders WHERE customerId = ?;
-    `;
-    const ordersResult = (await query({
-      query: ordersQuery,
-      values: [params.customerId],
-    })) as RowDataPacket[];
+    // Fetch orders for the customer using the model
+    const ordersResult = await getOrders(params.customerId);
 
     if (ordersResult.length === 0) {
       return new NextResponse(
@@ -23,21 +16,8 @@ export const GET = async (
       );
     }
 
-    // Fetch product details for each order
-    const orderDetails = [];
-    for (const order of ordersResult) {
-      const productsQuery = `
-        SELECT * FROM products WHERE _id IN (SELECT product FROM JSON_EXTRACT(?, '$[*].product'));
-      `;
-      const productsResult = (await query({
-        query: productsQuery,
-        values: [order.products],
-      })) as RowDataPacket[]; // Type assertion to RowDataPacket[]
-
-      orderDetails.push({ ...order, products: productsResult });
-    }
-
-    return NextResponse.json(orderDetails, { status: 200 });
+    // Return order details
+    return NextResponse.json(ordersResult, { status: 200 });
   } catch (err) {
     console.error("[customerId_GET]", err);
     return new NextResponse("Internal Server Error", { status: 500 });

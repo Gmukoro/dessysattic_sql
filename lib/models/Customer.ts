@@ -1,3 +1,5 @@
+//lib\models\Customer.ts
+
 import { query } from "@/lib/database";
 
 export interface CustomerAttributes {

@@ -1,18 +1,70 @@
+//app\(root)\collections\[collectionId]\page.tsx
+
+"use client";
+
+import React, { useState, useEffect } from "react";
 import ProductCard from "@/components/ProductCard";
 import Image from "next/image";
-import React from "react";
+import { useSearchParams } from "next/navigation";
 
-const CollectionDetails = async ({
-  params,
-}: {
-  params: { collectionId: string };
-}) => {
-  // Fetch collection details from the API route
-  const res = await fetch(`/api/collections/${params.collectionId}`);
-  const collectionDetails = await res.json();
+type CollectionType = {
+  id: number;
+  image: string;
+  title: string;
+  description: string;
+  products: ProductType[];
+};
+
+type Params = {
+  collectionId: string;
+};
+
+const CollectionDetails = ({ params }: { params: Params }) => {
+  const searchParams = useSearchParams();
+  const collectionId = searchParams.get("collectionId");
+
+  const [collectionDetails, setCollectionDetails] =
+    useState<CollectionType | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchCollectionDetails = async () => {
+      if (!collectionId) return;
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/collections/${collectionId}`;
+      try {
+        const res = await fetch(apiUrl, { cache: "no-store" });
+        if (!res.ok) {
+          throw new Error(`Failed to fetch collection: ${res.status}`);
+        }
+        const data = await res.json();
+        setCollectionDetails(data);
+      } catch (err: any) {
+        setError("Failed to load collection details. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCollectionDetails();
+  }, []);
+
+  if (loading) {
+    return (
+      <p className="text-amber-950 text-2xl">Loading collection details...</p>
+    );
+  }
+
+  if (error) {
+    return <p className="text-red-600 text-2xl">{error}</p>;
+  }
 
   if (!collectionDetails) {
-    return <p className="text-heading3-bold text-amber-950">No collections</p>;
+    return (
+      <p className="text-heading3-bold text-amber-950 items-center">
+        No collections found.
+      </p>
+    );
   }
 
   return (
@@ -40,5 +92,3 @@ const CollectionDetails = async ({
 };
 
 export default CollectionDetails;
-
-export const dynamic = "force-dynamic";

@@ -1,11 +1,12 @@
-// app/api/collections/[collectionId]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import {
+import Collection, {
   getCollectionById,
   updateCollection,
   deleteCollection,
+  getProductsInCollection,
 } from "@/lib/models/Collection";
+import Product, { getProductsByCollectionId } from "@/lib/models/Product";
 
 // Utility to validate session
 const validateSession = async () => {
@@ -17,31 +18,46 @@ const validateSession = async () => {
 };
 
 // GET: Fetch collection details (no session required)
-export const GET = async (
-  req: NextRequest,
+export async function GET(
+  req: Request,
   context: { params: { collectionId: string } }
-) => {
+) {
   try {
-    const { params } = context;
-    const collectionId = params.collectionId;
+    // Ensure params are awaited before accessing
+    const { collectionId } = context.params;
 
-    const collection = await getCollectionById(collectionId);
-
-    if (collection) {
-      return NextResponse.json(collection, { status: 200 });
+    // Validate and parse the collectionId
+    const collectionIdInt = parseInt(collectionId, 10);
+    if (isNaN(collectionIdInt)) {
+      return new Response("Invalid collection ID", { status: 400 });
     }
 
-    return new NextResponse("Collection not found", { status: 404 });
-  } catch (err) {
-    console.error("[collectionId_GET]", err);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    // Fetch collection details
+    const collection = await Collection.getProductsInCollection(
+      collectionIdInt
+    );
+
+    if (!collection) {
+      return new Response("Collection details not found", { status: 404 });
+    }
+
+    return new Response(JSON.stringify(collection), {
+      status: 200,
+      headers: {
+        "Access-Control-Allow-Origin": `${process.env.ECOMMERCE_STORE_URL}`,
+        "Access-Control-Allow-Methods": "GET",
+        "Access-Control-Allow-Headers": "Content-Type",
+      },
+    });
+  } catch (error) {
+    return new Response("Internal server error", { status: 500 });
   }
-};
+}
 
 // POST: Update collection (session required)
 export const POST = async (
-  req: NextRequest,
-  context: { params: { collectionId: string } }
+  req: Request,
+  { params }: { params: { collectionId: string } }
 ) => {
   try {
     const session = await validateSession();
@@ -49,10 +65,13 @@ export const POST = async (
       return session;
     }
 
-    const { params } = context;
-    const collectionId = params.collectionId;
+    const collectionId = parseInt(params.collectionId, 10);
+    if (isNaN(collectionId)) {
+      return new NextResponse("Invalid collection ID", { status: 400 });
+    }
 
-    const collection = await getCollectionById(collectionId);
+    let collection = await Collection.getCollectionById(collectionId);
+
     if (!collection) {
       return new NextResponse("Collection not found", { status: 404 });
     }
@@ -62,14 +81,16 @@ export const POST = async (
       return new NextResponse("Title and image are required", { status: 400 });
     }
 
-    const updatedCollection = await updateCollection(collection._id, {
+    const updatedCollection = await updateCollection(params.collectionId, {
       title,
       description,
       image,
     });
 
     if (updatedCollection) {
-      return NextResponse.json(updatedCollection, { status: 200 });
+      return new NextResponse(JSON.stringify(updatedCollection), {
+        status: 200,
+      });
     }
 
     return new NextResponse("Error updating collection", { status: 500 });
@@ -81,19 +102,21 @@ export const POST = async (
 
 // DELETE: Delete collection (session required)
 export const DELETE = async (
-  req: NextRequest,
-  context: { params: { collectionId: string } }
+  req: Request,
+  { params }: { params: { collectionId: string } }
 ) => {
   try {
     const session = await validateSession();
     if (session instanceof NextResponse) {
-      return session; // Unauthorized response
+      return session;
     }
 
-    const { params } = context;
-    const collectionId = params.collectionId;
+    const collectionId = parseInt(params.collectionId, 10);
+    if (isNaN(collectionId)) {
+      return new NextResponse("Invalid collection ID", { status: 400 });
+    }
 
-    const result = await deleteCollection(collectionId);
+    const result = await deleteCollection(params.collectionId);
 
     if (result) {
       return new NextResponse("Collection deleted", { status: 200 });

@@ -4,6 +4,7 @@ import { use, useEffect, useState } from "react";
 import ProductDetailsMain from "@/components/ProductDetailsMain";
 import ProductCard from "@/components/ProductCard";
 import Reviews from "@/components/Reviews";
+import React from "react";
 
 // Define the types for your params
 type Params = {

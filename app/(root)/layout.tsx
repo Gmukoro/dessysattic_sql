@@ -21,35 +21,28 @@ export const metadata: Metadata = {
   description: "DSY: WEAR YOUR CONFIDENCE ",
 };
 
-const RootLayout = async ({ children }: { children: React.ReactNode }) => {
+export default async function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  const session = await auth();
   return (
     <html lang="en">
       <body className={inter.className}>
         <Providers>
-          <SessionProvider>
-            <SessionContent>{children}</SessionContent>
-          </SessionProvider>
+          <VerificationStatus
+            visible={session && !session?.user.verified ? true : false}
+          />
+          <ToasterProvider />
+          <CurrencyProvider>
+            <Navbar />
+            {children}
+            <NewsletterSubscription />
+            <Footer />
+          </CurrencyProvider>
         </Providers>
       </body>
     </html>
   );
-};
-
-const SessionContent = async ({ children }: { children: React.ReactNode }) => {
-  const session = await auth();
-
-  return (
-    <>
-      <VerificationStatus visible={!!session && !session.user.verified} />
-      <ToasterProvider />
-      <CurrencyProvider>
-        <Navbar />
-        {children}
-        <NewsletterSubscription />
-        <Footer />
-      </CurrencyProvider>
-    </>
-  );
-};
-
-export default RootLayout;
+}

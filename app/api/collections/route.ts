@@ -34,7 +34,6 @@ export const POST = async (req: NextRequest) => {
       title,
       description,
       image,
-      id: "",
     });
 
     return NextResponse.json(result, { status: 200 });

@@ -19,7 +19,7 @@ const CurrencySelector = () => {
       <select
         value={selectedCurrency}
         onChange={handleChange}
-        className="border p-2 bg-gray-400  rounded-lg"
+        className="border p-2 bg-gray-300  rounded-lg"
       >
         <option value="USD">US Dollar (USD)</option>
         <option value="EUR">Euros (EUR)</option>

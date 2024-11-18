@@ -100,7 +100,7 @@ export const {
           avatar: user.avatar,
         };
       }
-
+      console.log(session);
       return session;
     },
   },

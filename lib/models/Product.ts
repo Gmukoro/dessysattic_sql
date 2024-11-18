@@ -1,6 +1,34 @@
 import { query } from "@/lib/database";
 import { OkPacket, RowDataPacket } from "mysql2";
 
+export interface ProductAttributes {
+  // Existing properties
+  priceRange?: { min: number; max: number };
+}
+// Constants for Table Names
+const PRODUCTS_TABLE = "products";
+const COLLECTIONS_TABLE = "product_collections";
+
+// Initialize ProductCollections table
+export const initializeProductCollectionsTable = async () => {
+  const createTableQuery = `
+    CREATE TABLE IF NOT EXISTS ProductCollections (
+      productId INT UNSIGNED NOT NULL,
+      collectionId INT UNSIGNED NOT NULL,
+      PRIMARY KEY (productId, collectionId),
+      FOREIGN KEY (productId) REFERENCES products(id) ON DELETE CASCADE,
+      FOREIGN KEY (collectionId) REFERENCES collections(id) ON DELETE CASCADE
+    );
+  `;
+
+  try {
+    await query({ query: createTableQuery });
+    console.log("ProductCollections table initialized successfully.");
+  } catch (error) {
+    console.error("Error initializing ProductCollections table:", error);
+  }
+};
+
 // Define the attributes for a Product
 export interface ProductAttributes {
   id: string;
@@ -13,15 +41,17 @@ export interface ProductAttributes {
   colors: string[];
   price: number;
   expense?: number;
-  collections: string[];
   createdAt?: Date;
   updatedAt?: Date;
 }
 
+// Utility function for safely converting to JSON string
+const safeJSONStringify = (data: unknown): string => JSON.stringify(data || []);
+
 // Initialize the Products table
 export const initializeProductTable = async () => {
   const createTableQuery = `
-    CREATE TABLE IF NOT EXISTS products (
+    CREATE TABLE IF NOT EXISTS ${PRODUCTS_TABLE} (
       id INT AUTO_INCREMENT PRIMARY KEY,
       title VARCHAR(255) NOT NULL,
       description TEXT,
@@ -38,9 +68,9 @@ export const initializeProductTable = async () => {
   `;
   try {
     await query({ query: createTableQuery });
-    console.log("Products table initialized successfully.");
+    console.log(`Table '${PRODUCTS_TABLE}' initialized successfully.`);
   } catch (error) {
-    console.error("Error initializing Products table:", error);
+    console.error(`Error initializing '${PRODUCTS_TABLE}' table:`, error);
   }
 };
 
@@ -84,6 +114,37 @@ export const createProduct = async (product: ProductAttributes) => {
     throw error;
   }
 };
+
+export const getProductIdsByCriteria = async (
+  criteria: Partial<ProductAttributes>
+): Promise<number[]> => {
+  const { title, category, priceRange } = criteria;
+  let condition = "1=1";
+  const values: (string | number)[] = [];
+
+  if (title) {
+    condition += " AND title LIKE ?";
+    values.push(`%${title}%`);
+  }
+  if (category) {
+    condition += " AND category = ?";
+    values.push(category);
+  }
+  if (priceRange) {
+    condition += " AND price BETWEEN ? AND ?";
+    values.push(priceRange.min, priceRange.max);
+  }
+
+  const selectQuery = `SELECT id FROM products WHERE ${condition}`;
+  try {
+    const rows = (await query({ query: selectQuery, values })) as RowDataPacket[];
+    return rows.map((row: RowDataPacket) => row.id as number);
+  } catch (error) {
+    console.error("Error fetching product IDs by criteria:", error);
+    throw error;
+  }
+};
+
 
 // Get a product by ID
 export const getProductById = async (
@@ -243,18 +304,20 @@ export const getRelatedProducts = async (
 // Fetch all products in a collection
 export const getProductsInCollection = async (collectionId: number) => {
   const selectQuery = `
-    SELECT p.id, p.title, p.description, p.price, p.category FROM products p
-    JOIN ProductCollections pc ON p.id = pc.productId
-    WHERE pc.collectionId = ?
+    SELECT p.* 
+    FROM ${PRODUCTS_TABLE} p
+    JOIN ${COLLECTIONS_TABLE} pc ON pc.product_id = p.id
+    WHERE pc.collection_id = ?
   `;
+
   try {
-    const products = await query({
-      query: selectQuery,
-      values: [collectionId],
-    });
-    return products;
+    // Execute the query
+    const rows = await query({ query: selectQuery, values: [collectionId] });
+
+    // Assert the result type as an array of RowDataPacket[]
+    return rows as RowDataPacket[];
   } catch (error) {
-    console.error("Error fetching products for collection:", error);
+    console.error("Error fetching products in collection:", error);
     throw error;
   }
 };
@@ -283,10 +346,34 @@ export const updateProductCollections = async (
   }
 };
 
+// Fetch products by collection ID
+export const getProductsByCollectionId = async (
+  collectionId: number
+): Promise<ProductAttributes[]> => {
+  const selectQuery = `
+    SELECT p.id, p.title, p.description, p.media, p.category, p.tags, p.sizes, p.colors, p.price, p.expense
+    FROM products p
+    JOIN ProductCollections pc ON p.id = pc.productId
+    WHERE pc.collectionId = ?
+  `;
+  try {
+    const products = await query({
+      query: selectQuery,
+      values: [collectionId],
+    });
+    return products as ProductAttributes[];
+  } catch (error) {
+    console.error("Error fetching products by collection ID:", error);
+    throw error;
+  }
+};
+
 export default {
+  initializeProductCollectionsTable,
   initializeProductTable,
   createProduct,
   getProductById,
+  getProductIdsByCriteria,
   updateProduct,
   deleteProduct,
   addProductToCollection,
@@ -296,4 +383,5 @@ export default {
   getRelatedProducts,
   getProductsInCollection,
   updateProductCollections,
+  getProductsByCollectionId,
 };
