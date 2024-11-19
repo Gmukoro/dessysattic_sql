@@ -12,7 +12,7 @@ type Params = {
 };
 
 const ProductDetails = ({ params }: { params: Params }) => {
-  const { productId } = params;
+  const productId = params.productId;
 
   const [productDetails, setProductDetails] = useState<ProductType | null>(
     null

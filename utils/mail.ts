@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 import jwt from "jsonwebtoken";
 
+// Configure email transport
 const transport = nodemailer.createTransport({
   host: process.env.EMAIL_HOST || "defaultHost",
   port: parseInt(process.env.EMAIL_PORT || "465"),
@@ -11,20 +12,24 @@ const transport = nodemailer.createTransport({
   },
 });
 
+// Type for email options
 type Options = {
-  [x: string]: any;
   to: string;
   name: string;
-  link: string;
+  link?: string; // Optional if already in token
+  token: string;
 };
 
-const generateToken = (email: string) => {
-  const token = jwt.sign({ email }, process.env.JWT_SECRET!, {
+// Generate a JWT token
+const generateToken = (email: string, userId?: string) => {
+  const payload = { email, userId };
+  const token = jwt.sign(payload, process.env.JWT_SECRET!, {
     expiresIn: "15m",
   });
   return token;
 };
 
+// Send verification email
 const sendVerificationMail = async (options: Options) => {
   const verificationLink = `${
     process.env.BASE_URL || "http://localhost:3000"
@@ -32,15 +37,16 @@ const sendVerificationMail = async (options: Options) => {
 
   await transport.sendMail({
     to: options.to,
-    from: process.env.EMAIL_USER,
-    subject: "Welcome Email",
+    from: `"DSY Clothing(dessysattic)" <${process.env.EMAIL_USER}>`,
+    subject: "Welcome to Our App!",
     html: `<div>
+            <p>Hello ${options.name},</p>
             <p>Please click on <a href="${verificationLink}">this link</a> to verify your email.</p>
         </div>`,
   });
 };
 
-// Send Password Reset Email
+// Send password reset email
 const sendPassResetMail = async (options: Options) => {
   const resetPasswordLink = `${
     process.env.BASE_URL || "http://localhost:3000"
@@ -48,14 +54,16 @@ const sendPassResetMail = async (options: Options) => {
 
   await transport.sendMail({
     to: options.to,
-    from: process.env.EMAIL_USER,
+    from: `"DSY Clothing(dessysattic)" <${process.env.EMAIL_USER}>`,
     subject: "Password Reset Request",
     html: `<div>
+            <p>Hello ${options.name},</p>
             <p>Please click on <a href="${resetPasswordLink}">this link</a> to reset your password.</p>
         </div>`,
   });
 };
 
+// Export mail functions
 const mail = {
   sendVerificationMail,
   sendPassResetMail,

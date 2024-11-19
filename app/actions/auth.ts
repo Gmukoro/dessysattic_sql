@@ -27,10 +27,12 @@ import {
   signInSchema,
 } from "@/utils/verificationSchema";
 import { auth, signIn, unstable_update } from "@/auth";
-import { redirect } from "next/navigation";
+import router, { useRouter } from "next/router";
 import mail from "@/utils/mail";
 import { uploadFileToCloud } from "@/utils/fileHandler";
 import { v4 as uuidv4 } from "uuid";
+import { AuthError } from "next-auth";
+import { redirect } from "next/navigation";
 
 // Admin email list
 const adminEmails = ["dessysattic@gmail.com", "Omoefeeweka6@gmail.com"];
@@ -40,6 +42,13 @@ interface AuthResponse {
   errors?: Record<string, string[] | undefined>;
   error?: string;
 }
+// Utility function for response
+const sendResponse = (status: number, data: any) => {
+  return {
+    status,
+    data,
+  };
+};
 
 // Utility: Create and send verification token
 const handleVerificationToken = async (user: {
@@ -51,7 +60,7 @@ const handleVerificationToken = async (user: {
   const token = crypto.randomBytes(36).toString("hex");
 
   // Cleanup existing tokens and create a new one
-  await cleanupExpiredTokens();
+  await cleanupExpiredTokens(parseInt(token));
   await createVerificationToken({
     token,
     userId,
@@ -59,7 +68,12 @@ const handleVerificationToken = async (user: {
   });
 
   const link = `${process.env.VERIFICATION_LINK}?token=${token}&userId=${userId}`;
-  await mail.sendVerificationMail({ link, name, to: email });
+  await mail.sendVerificationMail({
+    link,
+    name: user.name,
+    to: user.email,
+    token: "",
+  });
 };
 
 // Signup
@@ -70,14 +84,19 @@ const signUpSchema = z.object({
 });
 
 export const signUp = async (state: AuthResponse, data: FormData) => {
+  console.log("SignUp action started");
+
   const result = signUpSchema.safeParse({
     name: data.get("name"),
     email: data.get("email"),
     password: data.get("password"),
   });
 
+  console.log("Schema Validation Result:", result);
+
   if (!result.success) {
-    // Make sure to return errors in the correct format
+    // Log the errors if validation fails
+    console.log("Validation Failed:", result.error.formErrors.fieldErrors);
     return {
       success: false,
       errors: result.error.formErrors.fieldErrors,
@@ -86,13 +105,17 @@ export const signUp = async (state: AuthResponse, data: FormData) => {
   }
 
   const { name, email, password } = result.data;
+  console.log("Validated Data:", { name, email, password });
+
   const existingUser = await getUserByEmail(email);
+  console.log("Existing User Check:", existingUser);
 
   if (existingUser) {
+    console.log("User already exists");
     return {
       success: false,
       error: "User already exists!",
-      errors: undefined, // Ensure this is undefined as error is present
+      errors: undefined,
     };
   }
 
@@ -100,12 +123,17 @@ export const signUp = async (state: AuthResponse, data: FormData) => {
     name,
     email,
     password: bcrypt.hashSync(password, 10),
+    provider: "credentials",
     verified: false,
-    wishlist: [],
   });
+  console.log("User Created:", user);
 
-  await handleVerificationToken({ id: "user.id", name, email });
+  // Explicitly cast or convert id to string
+  await handleVerificationToken({ id: user.id.toString(), name, email });
+  console.log("Verification Token Sent");
+
   await signIn("credentials", { email, password, redirectTo: "/" });
+  console.log("User Signed In");
 
   return {
     success: true,
@@ -141,20 +169,25 @@ export const continueWithCredentials = async (
       return { success: false, error: "Incorrect password" };
     }
 
-    // Sign the user in using NextAuth.js
-    await signIn("credentials", { email, password, redirectTo: "/" });
+    await signIn("credentials", {
+      email,
+      password,
+      redirectTo: "/",
+    });
+    return { success: true };
+    redirect("/");
 
     return { success: true };
   } catch (error) {
     let errorMsg = "";
     if (error instanceof Error && error.message === "NEXT_REDIRECT") {
-      // Handle the redirect error in a specific way if needed
-      errorMsg = "Redirect error, please try again.";
+    } else if (error instanceof AuthError) {
+      errorMsg = error.message;
     } else {
-      errorMsg = (error as any).message || "Unknown error occurred.";
+      errorMsg = (error as any).message;
     }
 
-    return { success: false, error: errorMsg };
+    return { error: errorMsg, success: false };
   }
 };
 
@@ -170,7 +203,7 @@ export const generateVerificationLink = async (
   const { email, id, name } = session.user;
 
   // Fetch user details from the database
-  const user = await getUserById(id);
+  const user = await getUserById(session.user.id);
   if (!user) {
     return { success: false };
   }
@@ -250,15 +283,20 @@ export const generatePassResetLink = async (
   if (!user) return { message };
 
   const token = crypto.randomBytes(36).toString("hex");
-  await deleteByUserId(user.id);
+  await deleteByUserId(user.id || "");
   await createPasswordResetToken({
     token,
-    userId: user.id,
+    userId: user.id || "",
     expires: new Date(Date.now() + 1000 * 60 * 60 * 24),
   });
 
   const link = `${process.env.PASS_RESET_LINK}?token=${token}&userId=${user.id}`;
-  await mail.sendPassResetMail({ link, name: user.name, to: email });
+  await mail.sendPassResetMail({
+    link,
+    name: user.name,
+    to: email,
+    token: "",
+  });
 
   return { message };
 };
@@ -282,7 +320,11 @@ export const updatePassword = async (
   if (!resetToken) return { success: false, error: "Invalid request!" };
 
   const user = await getUserById(userId);
-  if (!user) return { success: false, error: "User not found!" };
+  if (!user)
+    return {
+      success: false,
+      error: "Could not update password, User not found!",
+    };
 
   await updateUser(userId, { password: bcrypt.hashSync(one, 10) });
   await deleteByUserId(resetToken.id);
@@ -291,10 +333,10 @@ export const updatePassword = async (
 };
 
 // Admin redirect
-export const redirectAdmin = async () => {
-  const session = await auth();
-  if (!session) return redirect("/sign-in");
+// export const redirectAdmin = async () => {
+//   const session = await auth();
+//   if (!session) return redirect("/sign-in");
 
-  if (adminEmails.includes(session.user.email)) return redirect("/admin");
-  return redirect("/");
-};
+//   if (adminEmails.includes(session.user.email)) return redirect("/admin");
+//   return redirect("/");
+// };

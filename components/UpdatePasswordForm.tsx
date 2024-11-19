@@ -1,8 +1,7 @@
 "use client";
 
 import { Input } from "@nextui-org/react";
-import { FC } from "react";
-import { useFormState } from "react-dom";
+import { FC, useActionState } from "react";
 import { updatePassword } from "@/app/actions/auth";
 import AuthSubmitButton from "./AuthSubmitButton";
 
@@ -12,7 +11,7 @@ interface Props {
 }
 
 const UpdatePasswordForm: FC<Props> = ({ userId, token }) => {
-  const [state, action] = useFormState(updatePassword, {});
+  const [state, action] = useActionState(updatePassword, { success: false });
   const { error, success } = state;
   return (
     <div className="space-y-6 max-w-96 mx-auto pt-20 sm:p-0 p-4">

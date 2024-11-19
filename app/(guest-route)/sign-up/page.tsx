@@ -1,14 +1,12 @@
 "use client";
 
-import { FC, useActionState } from "react";
-import { Input } from "@nextui-org/react";
+import { FC, useActionState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { toast, Toaster } from "react-hot-toast";
 import AuthForm from "@/components/AuthForm";
 import { signUp } from "../../actions/auth";
-import { useRouter } from "next/navigation";
 
-interface Props {}
-
-const SignUp: FC<Props> = () => {
+const SignUp: FC = () => {
   const router = useRouter();
   const [state, signUpAction] = useActionState(signUp, {
     success: false,
@@ -16,10 +14,24 @@ const SignUp: FC<Props> = () => {
     error: undefined,
   });
 
+  // Trigger toast notifications and handle redirection
+  useEffect(() => {
+    if (state.success) {
+      toast.success("Signup successful! Redirecting to Sign In page...");
+      setTimeout(() => {
+        router.push("/sign-in");
+      }, 3000);
+    } else if (state.error) {
+      toast.error(state.error);
+    }
+  }, [state.success, state.error, router]);
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-gradient-to-r from-yellow-200 via-neutral-800 to-amber-600">
+      {/* Toaster for rendering toast notifications */}
+      <Toaster position="top-center" reverseOrder={false} />
       <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
-        <h1 className="text-4xl font-bold text-amber-800 mb-6 text-center">
+        <h1 className="text-2xl font-bold text-amber-800 mb-6 text-center">
           Dessysattic Store Sign-up
         </h1>
         <AuthForm
@@ -45,24 +57,21 @@ const SignUp: FC<Props> = () => {
           }
           className="space-y-4"
         >
-          <Input
+          <input
             placeholder="John Doe"
             name="name"
-            className="px-4 py-2 mb-4 border border-gray-300 rounded-lg text-base sm:text-lg"
-            style={{ height: "20px" }}
+            className="w-full px-4 py-2 mb-4 border border-gray-300 rounded-lg text-base sm:text-lg"
           />
-          <Input
+          <input
             placeholder="johndoe@email.com"
             name="email"
-            className="px-4 py-2 mb-4 border border-gray-300 rounded-lg text-base sm:text-lg"
-            style={{ height: "20px" }}
+            className="w-full px-4 py-2 mb-4 border border-gray-300 rounded-lg text-base sm:text-lg"
           />
-          <Input
+          <input
             placeholder="********"
             type="password"
             name="password"
-            className="px-4 py-2 my-4 border border-gray-300 rounded-lg text-base sm:text-lg"
-            style={{ height: "20px" }}
+            className="w-full px-4 py-2 my-4 border border-gray-300 rounded-lg text-base sm:text-lg"
           />
         </AuthForm>
       </div>

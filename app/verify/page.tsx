@@ -1,37 +1,37 @@
-// app/verify/page.tsx
+import { FC } from "react";
+import {
+  cleanupExpiredTokens,
+  compareToken,
+  getTokenByUserId,
+} from "@/lib/models/verificationToken";
+import { updateUser } from "@/lib/models/user";
+import { notFound } from "next/navigation";
+import VerificationSuccess from "@/components/VerificationSuccess";
 
-import { NextRequest, NextResponse } from "next/server";
-import User from "@/lib/models/user";
-import VerificationToken from "@/lib/models/verificationToken";
+interface Props {
+  searchParams: {
+    token: string;
+    userId: string;
+  };
+}
 
-export const verifyUser = async (req: NextRequest) => {
+const Verify: FC<Props> = async ({ searchParams }) => {
+  const { token, userId } = searchParams;
+
   try {
-    // Retrieve `userId` from the request body
-    const { userId, token } = await req.json();
-
-    // Find the verification token using Sequelize's `findOne` method
-    const verificationToken = await VerificationToken.findOne({
-      where: { userId: userId, token: token },
-    });
-
-    if (!verificationToken) {
-      return new NextResponse("Verification token not found", { status: 404 });
+    const verificationToken = await getTokenByUserId(userId);
+    if (verificationToken && compareToken(verificationToken.token, token)) {
+      // token is verified
+      await updateUser(userId, { verified: true });
+      await cleanupExpiredTokens(verificationToken.id);
+    } else {
+      throw new Error();
     }
-
-    // Update the user to verified if the token is valid
-    await User.update(
-      { verified: true },
-      { where: { id: verificationToken.userId } } // Use `id` instead of `_id`
-    );
-
-    // Delete the verification token after successful verification
-    await VerificationToken.destroy({
-      where: { id: verificationToken.id }, // Use `id` instead of `_id`
-    });
-
-    return new NextResponse("User verified successfully", { status: 200 });
   } catch (error) {
-    console.error("[verifyUser]", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    notFound();
   }
+
+  return <VerificationSuccess />;
 };
+
+export default Verify;

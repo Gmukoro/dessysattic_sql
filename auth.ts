@@ -1,4 +1,6 @@
-import NextAuth from "next-auth";
+//app\actions\auth.ts
+
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { signInSchema } from "@/utils/verificationSchema";
@@ -16,6 +18,14 @@ declare module "next-auth" {
   interface Session {
     user: SessionUserProfile;
   }
+}
+
+class CustomError extends CredentialsSignin {
+  constructor(message: string) {
+    super(message);
+    this.message = message;
+  }
+  code = "custom_error";
 }
 
 export const {
@@ -37,6 +47,7 @@ export const {
 
         // Fetch user from the database
         const user = await getUserByEmail(email);
+        console.log("Fetched User:", user);
         if (
           !user ||
           !user.password ||
@@ -55,8 +66,13 @@ export const {
       },
     }),
   ],
+  secret: process.env.JWT_SECRET, // Use the JWT_SECRET from env
+  session: {
+    strategy: "jwt", // Set the strategy to JWT
+  },
   callbacks: {
     async jwt({ token, user, trigger, session }) {
+      console.log("JWT Callback Triggered:", { token, user, trigger });
       if (user) {
         // Ensure user.email is defined
         if (!user.email) {
@@ -66,13 +82,14 @@ export const {
         // Fetch user data from the database
         const dbUser = await getUserByEmail(user.email);
         if (dbUser) {
+          console.log("User from DB:", dbUser);
           token = {
             ...token,
             id: dbUser.id,
             email: dbUser.email,
             name: dbUser.name,
-            verified: dbUser.verified,
-            avatar: dbUser.avatar?.url,
+            verified: dbUser.verified || false,
+            avatar: dbUser.avatar?.url || "",
           };
         }
       }
@@ -80,7 +97,6 @@ export const {
       if (trigger === "update") {
         token = { ...token, ...session };
       }
-
       return token;
     },
     session({ token, session }) {
@@ -103,5 +119,10 @@ export const {
       console.log(session);
       return session;
     },
+  },
+  pages: {
+    signIn: "/sign-in",
+    signOut: "/sign-out",
+    error: "/error",
   },
 });

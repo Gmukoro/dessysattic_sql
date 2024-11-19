@@ -18,6 +18,7 @@ const SignIn: FC<Props> = () => {
           Dessysattic Admin Sign-in
         </h1>
         <AuthForm
+          action={signInAction}
           footerItems={[
             {
               label: "Create an account",
@@ -31,19 +32,20 @@ const SignIn: FC<Props> = () => {
             },
           ]}
           btnLabel="Sign In"
-          action={signInAction}
+          error={state.error}
+          message={state.success ? "Sign in successful" : ""}
           className="space-y-4"
         >
           <Input
             placeholder="johndoe@email.com"
             name="email"
-            className="border-2 border-gray-300 rounded-md p-2 focus:border-amber-800 focus:ring-amber-800"
+            className="w-full px-4 py-2 mb-4 border border-gray-300 rounded-lg text-base sm:text-lg"
           />
           <Input
             placeholder="********"
             type="password"
             name="password"
-            className="border-2 border-gray-300 rounded-md p-2 focus:border-amber-800 focus:ring-amber-800"
+            className="w-full px-4 py-2 mb-4 border border-gray-300 rounded-lg text-base sm:text-lg"
           />
         </AuthForm>
       </div>

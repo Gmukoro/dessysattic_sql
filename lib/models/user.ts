@@ -13,14 +13,15 @@ interface UserData extends RowDataPacket {
 }
 
 // Define the interface for user attributes
-interface UserAttributes {
-  id: string;
+export interface UserAttributes {
+  id?: string;
   name: string;
   email: string;
-  password?: string; // Optional for non-credentials providers
+  password?: string;
   avatar?: { id?: string; url: string };
   verified: boolean;
-  wishlist: string[];
+  provider: "credentials";
+  wishlist?: string[];
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -68,36 +69,60 @@ export const comparePasswords = (
 // Format user data to maintain consistent structure
 const formatUser = (user: any): UserAttributes => ({
   ...user,
-  avatar: JSON.parse(user.avatar || "{}"),
-  wishlist: JSON.parse(user.wishlist || "[]"),
+  avatar: (() => {
+    try {
+      return JSON.parse(user.avatar || "{}");
+    } catch {
+      return {};
+    }
+  })(),
+  wishlist: (() => {
+    try {
+      return JSON.parse(user.wishlist || "[]");
+    } catch {
+      return [];
+    }
+  })(),
 });
 
 // Create a new user
-export const createUser = async (userData: Omit<UserAttributes, "id">) => {
-  const { name, email, password, verified, wishlist, avatar } = userData;
-  const insertQuery = `
-    INSERT INTO users (id, name, email, password, verified, wishlist, avatar, createdAt, updatedAt)
-    VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+
+export const createUser = async ({
+  name,
+  email,
+  password,
+  provider,
+  verified,
+}: {
+  name: string;
+  email: string;
+  password: string;
+  provider: string;
+  verified: boolean;
+}) => {
+  const sqlQuery = `
+    INSERT INTO users (name, email, password, createdAt, updatedAt)
+    VALUES (?, ?, ?, ?, ?)
   `;
 
+  const values = [name, email, password, new Date(), new Date()];
+
   try {
-    const hashedPassword = password ? hashPassword(password) : null;
+    // Execute the query using the query function from lib/db.ts
     const result = await query({
-      query: insertQuery,
-      values: [
-        uuidv4(),
-        name.trim(),
-        email.trim(),
-        hashedPassword,
-        verified,
-        JSON.stringify(wishlist),
-        JSON.stringify(avatar),
-      ],
+      query: sqlQuery,
+      values: values,
     });
-    return result;
+
+    // Check for the insertId in the result and return the ID of the newly created user
+    if ("insertId" in result) {
+      return { id: result.insertId };
+    } else {
+      throw new Error("Failed to retrieve the insertId for the new user.");
+    }
   } catch (error) {
     console.error("Error creating user:", error);
-    throw error;
+    throw new Error("Error creating user.");
   }
 };
 

@@ -17,6 +17,13 @@ const HeartFavorite = ({ product, updateSignedInUser }: HeartFavoriteProps) => {
   const [loading, setLoading] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
 
+  // Format the user data (this can be extracted into a utility function as well)
+  const formatUser = (user: any): UserType => ({
+    ...user,
+    avatar: JSON.parse(user.avatar || "{}"),
+    wishlist: user.wishlist ? JSON.parse(user.wishlist) : [],
+  });
+
   const getUser = async () => {
     try {
       setLoading(true);

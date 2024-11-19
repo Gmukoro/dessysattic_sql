@@ -23,7 +23,7 @@ const SearchPage = async ({ params }: { params: { query: string } }) => {
         ))}
       <div className="flex flex-wrap justify-between gap-16">
         {searchedProducts?.map((product: ProductType) => (
-          <ProductCard key={product._id} product={product} />
+          <ProductCard key={product.id} product={product} />
         ))}
       </div>
     </div>

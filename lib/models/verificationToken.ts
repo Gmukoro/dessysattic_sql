@@ -13,6 +13,11 @@ interface VerificationTokenResult {
   token: string;
   userId: string;
   expires: Date;
+  compareToken: (token: string) => boolean;
+}
+
+interface Methods {
+  compareToken(token: string): boolean;
 }
 
 // Initialize the VerificationTokens table
@@ -36,6 +41,7 @@ export const initializeVerificationTokenTable = async () => {
 };
 
 // Create a new verification token
+// Create a new verification token with dynamic expiry
 export const createVerificationToken = async (
   data: VerificationTokenAttributes
 ) => {
@@ -46,9 +52,13 @@ export const createVerificationToken = async (
   `;
 
   try {
+    // Add a dynamic expiration logic if needed, e.g., 1 hour expiry:
+    const expirationTime = new Date();
+    expirationTime.setHours(expirationTime.getHours() + 1);
+
     const result = await query({
       query: insertQuery,
-      values: [hashedToken, data.userId, data.expires],
+      values: [hashedToken, data.userId, expirationTime],
     });
     return result;
   } catch (error) {
@@ -70,7 +80,17 @@ export const getTokenByUserId = async (
       query: selectQuery,
       values: [userId],
     })) as VerificationTokenResult[];
-    return rows.length > 0 ? rows[0] : null;
+
+    if (rows.length > 0) {
+      const token = rows[0];
+      // Attach the compareToken method
+      token.compareToken = (providedToken: string) => {
+        return bcrypt.compareSync(providedToken, token.token);
+      };
+      return token;
+    }
+
+    return null;
   } catch (error) {
     console.error("Error retrieving token by user ID:", error);
     throw error;
@@ -78,7 +98,7 @@ export const getTokenByUserId = async (
 };
 
 // Cleanup expired tokens
-export const cleanupExpiredTokens = async () => {
+export const cleanupExpiredTokens = async (id: number) => {
   const deleteQuery = `
     DELETE FROM verification_tokens WHERE expires < NOW()
   `;
