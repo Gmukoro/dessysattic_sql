@@ -4,7 +4,7 @@ import { getProductIdsByCriteria, ProductAttributes } from "./Product";
 
 // Define the Collection interface
 export interface CollectionAttributes {
-  id?: number;
+  id: number;
   title: string;
   description?: string;
   image: string;
@@ -41,6 +41,7 @@ export const createCollection = async (
   collectionData: Omit<CollectionAttributes, "createdAt" | "updatedAt" | "id">
 ) => {
   const { title, description, image } = collectionData;
+
   const insertQuery = `
     INSERT INTO collections (title, description, image, createdAt, updatedAt)
     VALUES (?, ?, ?, NOW(), NOW())
@@ -48,7 +49,7 @@ export const createCollection = async (
   try {
     const result = await query({
       query: insertQuery,
-      values: [title, description, image],
+      values: [title, description ?? null, image ?? null],
     });
     return result;
   } catch (error) {
@@ -82,7 +83,7 @@ export const createCollectionWithProducts = async (
 
     // Step 3: Insert product-collection relationships
     const insertProductCollectionQuery = `
-      INSERT INTO ProductCollections (productId, collectionId)
+      INSERT INTO collection_products (productId, collectionId)
       VALUES (?, ?)
     `;
     for (const productId of productIds) {
@@ -134,20 +135,23 @@ export const updateCollection = async (
   collectionId: string,
   updatedData: Partial<CollectionAttributes>
 ) => {
-  const { title, description, image } = updatedData;
-  const updateQuery = `
-    UPDATE collections
-    SET title = COALESCE(?, title),
-        description = COALESCE(?, description),
-        image = COALESCE(?, image),
-        updatedAt = NOW()
-    WHERE id = ?
-  `;
   try {
+    const { title, description, image } = updatedData;
+
+    const updateQuery = `
+      UPDATE collections
+      SET title = COALESCE(?, title),
+          description = COALESCE(?, description),
+          image = COALESCE(?, image),
+          updatedAt = NOW()
+      WHERE id = ?
+    `;
+
     const result = await query({
       query: updateQuery,
-      values: [title, description, image, collectionId],
+      values: [title ?? null, description ?? null, image ?? null, collectionId], // Convert undefined to null
     });
+
     return result;
   } catch (error) {
     console.error("Error updating collection:", error);
@@ -171,7 +175,7 @@ export const getProductsInCollection = async (collectionId: number) => {
   const selectQuery = `
     SELECT p.* 
     FROM ${PRODUCTS_TABLE} p
-    JOIN ProductCollections pc ON pc.productId = p.id
+    JOIN collection_products pc ON pc.productId = p.id
     WHERE pc.collectionId = ?
   `;
   try {

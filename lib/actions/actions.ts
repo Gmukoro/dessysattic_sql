@@ -34,7 +34,7 @@ export const getTotalCustomers = async () => {
     const customers = await query({
       query: "SELECT * FROM customers",
     });
-    const totalCustomers = (customers as RowDataPacket[]).length; // Type assertion
+    const totalCustomers = (customers as RowDataPacket[]).length; 
     return totalCustomers;
   } catch (error) {
     console.error("Error fetching total customers:", error);

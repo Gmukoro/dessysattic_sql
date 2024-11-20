@@ -38,6 +38,7 @@ export default async function RootLayout({
           <CurrencyProvider>
             <Navbar />
             {children}
+
             <NewsletterSubscription />
             <Footer />
           </CurrencyProvider>

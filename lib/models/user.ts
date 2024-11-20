@@ -126,7 +126,6 @@ export const createUser = async ({
   }
 };
 
-// Fetch a user by email
 export const getUserByEmail = async (
   email: string
 ): Promise<UserAttributes | null> => {
@@ -135,11 +134,11 @@ export const getUserByEmail = async (
     const users = (await query({
       query: selectQuery,
       values: [email.trim()],
-    })) as UserRow[];
+    })) as UserResult;
     return users.length > 0 ? formatUser(users[0]) : null;
   } catch (error) {
     console.error("Error fetching user by email:", error);
-    throw error;
+    throw new Error("Error fetching user by email.");
   }
 };
 
@@ -156,7 +155,7 @@ export const getUserById = async (
     return users.length > 0 ? formatUser(users[0]) : null;
   } catch (error) {
     console.error("Error fetching user by ID:", error);
-    throw error;
+    throw new Error("Error fetching user by ID.");
   }
 };
 
@@ -199,23 +198,20 @@ export const updateUser = async (
   }
 };
 
+// Add product to wishlist
 export const addToWishlist = async (userId: string, productId: string) => {
   const selectQuery = `SELECT wishlist FROM users WHERE id = ?`;
 
-  // Ensure the result is typed as an array of UserData
   const result = (await query({
     query: selectQuery,
     values: [userId],
-  })) as UserData[];
+  })) as UserResult;
 
-  // If no user is found, return an empty array or handle accordingly
   if (result.length === 0) {
     throw new Error("User not found");
   }
 
   const user = result[0];
-
-  // Default to an empty array if undefined
   const wishlist = user?.wishlist ?? [];
 
   if (!wishlist.includes(productId)) {
@@ -231,23 +227,20 @@ export const addToWishlist = async (userId: string, productId: string) => {
   return wishlist;
 };
 
+// Remove product from wishlist
 export const removeFromWishlist = async (userId: string, productId: string) => {
   const selectQuery = `SELECT wishlist FROM users WHERE id = ?`;
 
-  // Ensure the result is typed as an array of UserData
   const result = (await query({
     query: selectQuery,
     values: [userId],
-  })) as UserData[];
+  })) as UserResult;
 
-  // If no user is found, return an empty array or handle accordingly
   if (result.length === 0) {
     throw new Error("User not found");
   }
 
   const user = result[0];
-
-  // Default to an empty array if undefined
   const wishlist = user?.wishlist ?? [];
 
   const updatedWishlist = wishlist.filter((id: string) => id !== productId);

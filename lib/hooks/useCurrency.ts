@@ -1,3 +1,5 @@
+//lib\hooks\useCurrency.ts
+
 import { useState, useEffect, useCallback, useRef } from "react";
 import { fetchCurrencyRates } from "../currency";
 import Cookies from "js-cookie";

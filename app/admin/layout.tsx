@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import "./globals.css";
+import "../globals.css";
 
 import { ToasterProvider } from "@/lib/ToasterProvider";
 import Providers from "./providers";
@@ -25,9 +25,9 @@ export default async function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <Providers>
-          {/* <VerificationStatus
+          <VerificationStatus
             visible={session && !session?.user.verified ? true : false}
-          /> */}
+          />
           <ToasterProvider />
           {children}
         </Providers>

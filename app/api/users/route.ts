@@ -1,37 +1,23 @@
-import { auth } from "@/auth";
-import { NextResponse } from "next/server";
-import { getUserByEmail, getUserById } from "@/lib/models/user";
+// app/api/users/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { getUserById } from "@/lib/models/user"; // Adjust path if necessary
+import { auth } from "@/auth"; // Adjust path if necessary
 
-// Format user data to maintain consistent structure
-const formatUser = (user: any): UserType => ({
-  ...user,
-  avatar: JSON.parse(user.avatar || "{}"),
-  wishlist: user.wishlist ? JSON.parse(user.wishlist) : [],
-});
-
-export async function GET(req: Request) {
-  const session = await auth();
-
-  // Check if session exists and user is authenticated
-  if (!session || !session.user || !session.user.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export async function GET(req: NextRequest) {
   try {
-    // Fetch the user using the model function
-    const user = await getUserById(session.user.email);
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
+    const user = await getUserById(session.user.id);
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Format the user data before returning it
-    const formattedUser = formatUser(user);
-
-    // Return the formatted wishlist from the user model
-    return NextResponse.json({ wishlist: formattedUser.wishlist });
+    return NextResponse.json({ wishlist: user.wishlist }, { status: 200 });
   } catch (error) {
-    console.error("Error fetching user or wishlist:", error);
+    console.error("Error fetching user data:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }

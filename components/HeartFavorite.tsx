@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { Heart } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import Loader from "./Loader";
 
 interface HeartFavoriteProps {
   product: ProductType;
@@ -82,7 +83,11 @@ const HeartFavorite = ({ product, updateSignedInUser }: HeartFavoriteProps) => {
       aria-label={isLiked ? "Remove from wishlist" : "Add to wishlist"}
     >
       <Heart fill={isLiked ? "red" : "white"} />
-      {loading && <span>Loading...</span>}
+      {loading && (
+        <span className="h-6 w-6">
+          <Loader />
+        </span>
+      )}
     </button>
   );
 };

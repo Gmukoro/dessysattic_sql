@@ -1,7 +1,6 @@
 // Collection Type
 type CollectionType = {
-  [x: string]: string;
-  _id: string;
+  id: string;
   title: string;
   description?: string;
   image: string;
@@ -21,38 +20,11 @@ type ProductType = {
   sizes: string[];
   colors: string[];
   price: number;
-  collections: string[];
-  expense?: number;
+  collections: string | string[];
+  expense: number;
   createdAt?: Date;
   updatedAt?: Date;
   currencySymbol?: string;
-};
-
-// Order Type
-type OrderType = {
-  _id: string;
-  products: {
-    product: {
-      _id: string;
-      title: string;
-      media: string[];
-      price: number;
-      description?: string;
-      category?: string;
-      tags?: string[];
-      sizes?: string[];
-      colors?: string[];
-    };
-    color: string;
-    size: string;
-    quantity: number;
-  }[];
-  shippingAddress: ShippingAddress;
-  shippingRate: string;
-  totalAmount: number;
-  createdAt: Date;
-  updatedAt: Date;
-  customerId: string;
 };
 
 type OrderColumnType = {
@@ -75,11 +47,15 @@ type OrderItemProductType = {
   colors?: string[];
 };
 
-type OrderItemType = {
-  product: OrderItemProductType;
-  color: string;
-  size: string;
-  quantity: number;
+type OrderType = {
+  _id: string;
+  products: OrderItemType[];
+  shippingAddress: ShippingAddress;
+  shippingRate: string;
+  totalAmount: number;
+  createdAt: Date;
+  updatedAt: Date;
+  customerId: string;
 };
 
 interface ShippingAddress {
@@ -87,7 +63,7 @@ interface ShippingAddress {
   city: string;
   state: string;
   postalCode: string;
-  country: string;
+  country?: string;
 }
 
 // Customer Type
@@ -96,8 +72,8 @@ type CustomerType = {
   name: string;
   email: string;
   orders: OrderType[];
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 // Review Type
@@ -107,8 +83,8 @@ type ReviewType = {
   userId: string;
   rating: number;
   content: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 // User Type
@@ -118,8 +94,8 @@ type UserType = {
   email: string;
   password: string;
   wishlist?: string[];
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 type BaseUserDoc = UserType & {
@@ -129,14 +105,14 @@ type BaseUserDoc = UserType & {
   password: string;
   wishlist: string[];
   verified: boolean;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 // Newsletter Type
 type NewsletterType = {
   email: string;
-  date: string;
+  date: Date;
 };
 
 // Password Reset Token Type
@@ -144,7 +120,7 @@ type PasswordResetTokenType = {
   id: string;
   token: string;
   userId: string;
-  expires: string;
+  expires: Date;
 };
 
 // Verification Token Type
@@ -152,5 +128,5 @@ type VerificationTokenType = {
   id: string;
   token: string;
   userId: string;
-  expires: string;
+  expires: Date;
 };

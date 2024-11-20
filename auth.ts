@@ -47,7 +47,6 @@ export const {
 
         // Fetch user from the database
         const user = await getUserByEmail(email);
-        console.log("Fetched User:", user);
         if (
           !user ||
           !user.password ||
@@ -72,7 +71,6 @@ export const {
   },
   callbacks: {
     async jwt({ token, user, trigger, session }) {
-      console.log("JWT Callback Triggered:", { token, user, trigger });
       if (user) {
         // Ensure user.email is defined
         if (!user.email) {
@@ -82,7 +80,6 @@ export const {
         // Fetch user data from the database
         const dbUser = await getUserByEmail(user.email);
         if (dbUser) {
-          console.log("User from DB:", dbUser);
           token = {
             ...token,
             id: dbUser.id,
@@ -116,13 +113,7 @@ export const {
           avatar: user.avatar,
         };
       }
-      console.log(session);
       return session;
     },
-  },
-  pages: {
-    signIn: "/sign-in",
-    signOut: "/sign-out",
-    error: "/error",
   },
 });

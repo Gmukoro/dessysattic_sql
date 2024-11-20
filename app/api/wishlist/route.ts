@@ -1,63 +1,34 @@
-import { auth } from "@/auth";
+// app/api/wishlist/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import {
-  addToWishlist,
-  removeFromWishlist,
-  getUserByEmail,
-  UserAttributes,
-  getUserById,
-} from "@/lib/models/user";
+import { addToWishlist, getUserById } from "@/lib/models/user";
+import { auth } from "@/auth";
 
-// Format user data to maintain consistent structure
-const formatUser = (user: any): UserAttributes => ({
-  ...user,
-  avatar: JSON.parse(user.avatar || "{}"),
-  wishlist: user.wishlist ? JSON.parse(user.wishlist) : [],
-});
-
-export const POST = async (req: NextRequest) => {
+export async function POST(req: NextRequest) {
   try {
-    // Check if the user is authenticated
     const session = await auth();
-    if (!session || !session.user || !session.user.email) {
+    const userId = session?.user?.id;
+    if (!userId) {
+      console.log("User not authenticated or missing user ID");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { productId } = await req.json();
-    if (!productId) {
-      return NextResponse.json(
-        { error: "Product ID is required" },
-        { status: 400 }
-      );
-    }
+    const user = await getUserById(userId);
 
-    // Fetch user wishlist to check if product exists in wishlist
-    const user = await getUserByEmail(session.user.email);
     if (!user) {
+      console.log("User not found in database for ID:", userId);
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const isLiked =
-      Array.isArray(user.wishlist) && user.wishlist.includes(productId);
-    const updatedWishlist = isLiked
-      ? await removeFromWishlist(session.user.email, productId)
-      : await addToWishlist(session.user.email, productId);
+    // Read the body as JSON
+    const body = await req.json();
 
-    // Return the formatted updated user data
-    const updatedUser = formatUser({
-      ...user,
-      wishlist: updatedWishlist,
-    });
-
-    return NextResponse.json(
-      { wishlist: updatedUser.wishlist },
-      { status: 200 }
-    );
-  } catch (err) {
-    console.error("[wishlist_POST]", err);
+    const updatedWishlist = await addToWishlist(userId, body);
+    return NextResponse.json({ wishlist: updatedWishlist }, { status: 200 });
+  } catch (error) {
+    console.error("Error in adding to wishlist:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
     );
   }
-};
+}

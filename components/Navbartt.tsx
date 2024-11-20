@@ -310,3 +310,5 @@ export default Navbar;
 function setIsDropdownVisible(arg0: boolean): void {
   throw new Error("Function not implemented.");
 }
+
+

@@ -4,6 +4,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation } from "swiper/modules";
 import "swiper/swiper-bundle.css";
 import { HiArrowLeft, HiArrowRight } from "react-icons/hi";
+import Loader from "./Loader";
 
 interface Review {
   _id: string;
@@ -19,35 +20,47 @@ const ReviewsComponent = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchReviews = async () => {
-      try {
-        const response = await fetch("/api/reviews", {
-          method: "GET",
-        });
+    // Check if reviews are already cached in localStorage
+    const cachedReviews = localStorage.getItem("reviews");
 
-        if (!response.ok) {
-          throw new Error(await response.text());
+    if (cachedReviews) {
+      // If reviews exist in localStorage, use them
+      setReviews(JSON.parse(cachedReviews));
+      setLoading(false);
+    } else {
+      // If not cached, fetch reviews from the API
+      const fetchReviews = async () => {
+        try {
+          const response = await fetch("/api/reviews", {
+            method: "GET",
+          });
+
+          if (!response.ok) {
+            throw new Error(await response.text());
+          }
+
+          const fetchedReviews: Review[] = await response.json();
+          if (fetchedReviews.length === 0) {
+            setError("No reviews available");
+          } else {
+            setReviews(fetchedReviews);
+            // Cache the reviews in localStorage
+            localStorage.setItem("reviews", JSON.stringify(fetchedReviews));
+          }
+          setLoading(false);
+        } catch (err) {
+          console.error("Error fetching reviews:", err);
+          setError("Failed to fetch reviews");
+          setLoading(false);
         }
+      };
 
-        const fetchedReviews: Review[] = await response.json();
-        if (fetchedReviews.length === 0) {
-          setError("No reviews available");
-        } else {
-          setReviews(fetchedReviews);
-        }
-        setLoading(false);
-      } catch (err) {
-        console.error("Error fetching reviews:", err);
-        setError("Failed to fetch reviews");
-        setLoading(false);
-      }
-    };
-
-    fetchReviews();
+      fetchReviews();
+    }
   }, []);
 
   if (loading) {
-    return <p className="text-white">Loading reviews...</p>;
+    return <Loader />;
   }
 
   if (error) {

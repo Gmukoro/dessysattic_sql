@@ -1,5 +1,3 @@
-// app/page.tsx
-
 import React from "react";
 import ProductList from "@/components/ProductList";
 import BestSellers from "@/components/Best_sellers";
@@ -13,6 +11,17 @@ import Loading from "@/components/Loading";
 export default function Home() {
   return (
     <>
+      {/* Full page blurred background */}
+      <div
+        className="absolute inset-0 bg-cover bg-center z-[-1]"
+        style={{
+          backgroundImage: "url('/logo.png')", // Path to the logo/image for the background
+          backgroundSize: "cover", // Make the image cover the whole page
+          backgroundPosition: "center", // Ensure it's centered
+          filter: "blur(10px)", // Apply a blur effect to the background image
+        }}
+      ></div>
+      {/* Main content */}
       <div className="relative h-screen sm:h-[80vh] md:h-[90vh] overflow-hidden">
         <VideoPlayer />
         <div className="absolute px-16 inset-0 flex flex-col justify-center text-white font-bold">
@@ -36,8 +45,9 @@ export default function Home() {
         </h2>
         <ProductList />
         <Collections />
+
         <ReviewsComponent />
-        <h2 className="text-heading2-bold text-4xl font-bold mb-8 mt-8 relative bg-gradient-to-r text-neutral-600 px-20">
+        <h2 className="text-heading2-bold text-4xl font-bold mb-4 mt-8 relative bg-gradient-to-r text-neutral-600 px-20">
           Best Sellers
         </h2>
         <BestSellers />

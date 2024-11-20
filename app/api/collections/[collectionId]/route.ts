@@ -41,14 +41,14 @@ export async function GET(
       return new Response("Collection details not found", { status: 404 });
     }
 
-    return new Response(JSON.stringify(collection), {
-      status: 200,
-      headers: {
-        "Access-Control-Allow-Origin": `${process.env.ECOMMERCE_STORE_URL}`,
-        "Access-Control-Allow-Methods": "GET",
-        "Access-Control-Allow-Headers": "Content-Type",
-      },
-    });
+    // return new Response(JSON.stringify(collection), {
+    //   status: 200,
+    //   headers: {
+    //     "Access-Control-Allow-Origin": `${process.env.ECOMMERCE_STORE_URL}`,
+    //     "Access-Control-Allow-Methods": "GET",
+    //     "Access-Control-Allow-Headers": "Content-Type",
+    //   },
+    // });
   } catch (error) {
     return new Response("Internal server error", { status: 500 });
   }
