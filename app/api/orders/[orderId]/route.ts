@@ -6,16 +6,25 @@ export const GET = async (
   { params }: { params: { orderId: string } }
 ) => {
   try {
-    // Fetch the order by ID using the model
-    const order = await getOrderById(params.orderId); // Fetch the order by ID
-
-    if (!order) {
-      return new NextResponse(JSON.stringify({ message: "Order Not Found" }), {
-        status: 404,
-      });
+    // Validate orderId
+    if (!params.orderId || typeof params.orderId !== "string") {
+      return new NextResponse(
+        JSON.stringify({ message: "Invalid Order ID provided" }),
+        { status: 400 }
+      );
     }
 
-    // Fetch associated product and customer details here if necessary
+    const order = await getOrderById(params.orderId);
+
+    if (!order) {
+      return new NextResponse(
+        JSON.stringify({
+          message: `Order Not Found at /orders/${params.orderId}`,
+        }),
+        { status: 404 }
+      );
+    }
+
     return NextResponse.json(order, { status: 200 });
   } catch (err) {
     console.error("[orderId_GET]", err);

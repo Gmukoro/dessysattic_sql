@@ -4,7 +4,7 @@ import MainLayout from "@/components/admincomponents/MainLayout";
 
 const OrderDetails = async ({ params }: { params: { orderId: string } }) => {
   const res = await fetch(
-    `${process.env.ADMIN_DASHBOARD_URL}/api/orders/${params.orderId}`
+    `/api/orders/${params.orderId}`
   );
   const { orderDetails, customer } = await res.json();
 

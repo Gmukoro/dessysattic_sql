@@ -23,7 +23,7 @@ const TopBar = () => {
     "https://res.cloudinary.com/dsonuae0l/image/upload/v1730193086/avartar_byu4f1.png";
 
   return (
-    <div className="sticky top-0 z-20 w-full flex justify-between items-center px-8 py-4 bg-blue-2 shadow-xl lg:hidden">
+    <div className="sticky top-0 z-20 w-full flex justify-between items-center px-8 py-4 bg-gray-400 shadow-xl lg:hidden">
       <Image src="/logo.png" alt="logo" width={150} height={70} />
 
       <div className="flex gap-8 max-md:hidden">
@@ -32,7 +32,7 @@ const TopBar = () => {
             href={link.url}
             key={link.label}
             className={`flex gap-4 text-body-medium ${
-              pathname === link.url ? "text-blue-1" : "text-grey-1"
+              pathname === link.url ? "text-amber-800" : "text-white"
             }`}
           >
             {link.label}
@@ -46,12 +46,12 @@ const TopBar = () => {
           onClick={() => setDropdownMenu(!dropdownMenu)}
         />
         {dropdownMenu && (
-          <div className="absolute top-10 right-6 flex flex-col gap-8 p-5 bg-white shadow-xl rounded-lg">
+          <div className="absolute top-10 right-6 flex flex-col gap-8 p-5 bg-gray-400 shadow-xl rounded-lg">
             {navLinks.map((link) => (
               <Link
                 href={link.url}
                 key={link.label}
-                className="flex gap-4 text-body-medium"
+                className="flex gap-4 text-body-medium text-amber-800"
               >
                 {link.icon} {link.label}
               </Link>
@@ -66,7 +66,7 @@ const TopBar = () => {
             height={30}
             className="rounded-full"
           />
-          <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-blue-1">
+          <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-amber-800">
             {name || "Profile"}
           </span>
         </Link>

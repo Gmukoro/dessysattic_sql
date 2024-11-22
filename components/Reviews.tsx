@@ -1,13 +1,14 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { auth } from "@/auth";
-import { useSession } from "next-auth/react";
+import { useSession, signIn } from "next-auth/react";
 import { AiFillStar } from "react-icons/ai";
 import { getReviewsByProductId } from "@/lib/models/reviews";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 interface Review {
-  _id: null | undefined;
+  _id: string;
   content: string;
   rating: number;
   title: string;
@@ -21,16 +22,18 @@ interface ReviewsProps {
 }
 
 const Reviews: React.FC<ReviewsProps> = ({ productId }) => {
+  const { data: session } = useSession();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [newReview, setNewReview] = useState({
-    name: "",
-    email: "",
-    content: "",
-    rating: 1,
-    productId: productId,
-  });
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const reviewsPerPage = 5;
+
+  // State for form fields
+  const [formName, setFormName] = useState<string>("");
+  const [formEmail, setFormEmail] = useState<string>("");
+  const [formContent, setFormContent] = useState<string>("");
+  const [formRating, setFormRating] = useState<number>(1);
   const [isFormVisible, setIsFormVisible] = useState<boolean>(false);
 
   useEffect(() => {
@@ -39,8 +42,7 @@ const Reviews: React.FC<ReviewsProps> = ({ productId }) => {
         const data = await getReviewsByProductId(productId);
         setReviews(data as Review[]);
       } catch (err) {
-        setError("Failed to fetch reviews. Please try again later.");
-        setTimeout(() => setError(null), 3000);
+        toast.error("Failed to fetch reviews. Please try again later.");
       } finally {
         setLoading(false);
       }
@@ -49,69 +51,48 @@ const Reviews: React.FC<ReviewsProps> = ({ productId }) => {
     fetchReviews();
   }, [productId]);
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setNewReview((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleRatingChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setNewReview((prev) => ({
-      ...prev,
-      rating: parseInt(e.target.value),
-    }));
-  };
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
+    if (!session || !session.user) {
+      toast.error("You must sign in to submit a review.");
+      return signIn();
+    }
+
     try {
-      const { data: session } = useSession();
-      console.log("Session:", session);
-
-      if (!session || !session.user) {
-        setError("Please sign in to submit a review");
-        return;
-      }
-
       setLoading(true);
+      const newReview = {
+        name: formName,
+        email: formEmail,
+        content: formContent,
+        rating: formRating,
+        productId,
+      };
 
-      const response = await axios.post(`api/review`, newReview, {
+      const response = await axios.post(`/api/review`, newReview, {
         headers: { "Content-Type": "application/json" },
       });
 
       if (response.status === 201) {
         setReviews((prev) => [...prev, response.data]);
-        setNewReview({
-          name: "",
-          email: "",
-          content: "",
-          rating: 1,
-          productId,
-        });
-        setError(null);
-        alert("Review submitted successfully!");
+        setFormName("");
+        setFormEmail("");
+        setFormContent("");
+        setFormRating(1);
+        setIsFormVisible(false);
+        toast.success("Review submitted successfully!");
       } else {
-        throw new Error("Failed to submit review, please try again.");
+        throw new Error("Failed to submit review. Please try again.");
       }
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
-        setError(
+        toast.error(
           err.response?.data?.message ||
             "Failed to submit review. Please check your input."
         );
-      } else if (err instanceof Error) {
-        setError(err.message);
       } else {
-        setError("An unknown error occurred");
+        toast.error("An unknown error occurred. Please try again.");
       }
-      console.error("Error submitting review:", err);
-
-      setTimeout(() => setError(null), 3000);
     } finally {
       setLoading(false);
     }
@@ -132,17 +113,23 @@ const Reviews: React.FC<ReviewsProps> = ({ productId }) => {
     return "Just now";
   };
 
+  // Pagination logic
+  const indexOfLastReview = currentPage * reviewsPerPage;
+  const indexOfFirstReview = indexOfLastReview - reviewsPerPage;
+  const currentReviews = reviews.slice(indexOfFirstReview, indexOfLastReview);
+
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
   if (loading) return <p>Loading reviews...</p>;
-  if (error) return <p>Error: {error}</p>;
 
   return (
     <div className="mt-8 w-full">
       <h2 className="text-4xl text-amber-900 font-bold mb-4">Reviews</h2>
       <div className="bg-gray-200 p-6 rounded-lg">
-        {reviews.length === 0 ? (
+        {currentReviews.length === 0 ? (
           <p>No reviews yet. Be the first to review!</p>
         ) : (
-          reviews.map((review) => (
+          currentReviews.map((review) => (
             <div
               key={review._id}
               className="border p-4 mb-4 rounded-lg bg-white"
@@ -158,13 +145,33 @@ const Reviews: React.FC<ReviewsProps> = ({ productId }) => {
                     ))}
                   </div>
                 </div>
-                <p className="text-gray-700 mt-2 md:mt-0">{review.content}</p>
+                <p className="text-amber-700 mt-2 md:mt-0">{review.content}</p>
                 <p className="text-amber-700 mt-2 md:mt-0 text-sm">
                   {formatTimeAgo(review.createdAt)}
                 </p>
               </div>
             </div>
           ))
+        )}
+      </div>
+
+      {/* Pagination */}
+      <div className="flex justify-center space-x-2 mt-4">
+        {Array.from(
+          { length: Math.ceil(reviews.length / reviewsPerPage) },
+          (_, index) => (
+            <button
+              key={index}
+              className={`py-2 px-4 ${
+                index + 1 === currentPage
+                  ? "bg-amber-800 text-white"
+                  : "bg-gray-300"
+              } rounded`}
+              onClick={() => paginate(index + 1)}
+            >
+              {index + 1}
+            </button>
+          )
         )}
       </div>
 
@@ -179,8 +186,8 @@ const Reviews: React.FC<ReviewsProps> = ({ productId }) => {
           <input
             type="text"
             name="name"
-            value={newReview.name}
-            onChange={handleInputChange}
+            value={formName}
+            onChange={(e) => setFormName(e.target.value)}
             placeholder="Your Name"
             className="border p-2 mb-2 w-full"
             required
@@ -188,24 +195,24 @@ const Reviews: React.FC<ReviewsProps> = ({ productId }) => {
           <input
             type="email"
             name="email"
-            value={newReview.email}
-            onChange={handleInputChange}
+            value={formEmail}
+            onChange={(e) => setFormEmail(e.target.value)}
             placeholder="Your Email"
             className="border p-2 mb-2 w-full"
             required
           />
           <textarea
             name="content"
-            value={newReview.content}
-            onChange={handleInputChange}
+            value={formContent}
+            onChange={(e) => setFormContent(e.target.value)}
             placeholder="Your Review"
             className="border p-2 mb-2 w-full"
             required
           />
           <select
             name="rating"
-            value={newReview.rating}
-            onChange={handleRatingChange}
+            value={formRating}
+            onChange={(e) => setFormRating(Number(e.target.value))}
             className="border p-2 mb-2 w-full"
             required
           >

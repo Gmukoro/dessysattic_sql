@@ -1,3 +1,5 @@
+//components\admincomponents\products\ProductForm.tsx
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -54,6 +56,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
         method: "GET",
       });
       const data = await res.json();
+      console.log(data);
       setCollections(data);
       setLoading(false);
     } catch (err) {
@@ -72,7 +75,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
       ? {
           ...initialData,
           collections: initialData.collections.map(
-            (collection) => collection._id
+            (collection) => collection.id
           ),
         }
       : {
@@ -103,7 +106,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
     try {
       setLoading(true);
       const url = initialData
-        ? `/api/products/${initialData._id}`
+        ? `/api/products/${initialData.id}`
         : "/api/products";
       const res = await fetch(url, {
         method: "POST",
@@ -112,8 +115,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
       if (res.ok) {
         setLoading(false);
         toast.success(`Product ${initialData ? "updated" : "created"}`);
-        window.location.href = "/products";
-        router.push("/products");
+        window.location.href = "/admin/products";
+        router.push("/admin/products");
       }
     } catch (err) {
       console.log("[products_POST]", err);
@@ -128,12 +131,12 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
       {initialData ? (
         <div className="flex items-center justify-between">
           <p className="text-heading2-bold">Edit Product</p>
-          <Delete id={initialData._id} item="product" />
+          <Delete id={initialData.id} item="product" />
         </div>
       ) : (
         <p className="text-heading2-bold">Create Product</p>
       )}
-      <Separator className="bg-grey-1 mt-4 mb-7" />
+      <Separator className="bg-gray-700 mt-4 mb-7" />
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           <FormField
@@ -149,7 +152,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
                     onKeyDown={handleKeyPress}
                   />
                 </FormControl>
-                <FormMessage className="text-blue-1" />
+                <FormMessage className="text-black" />
               </FormItem>
             )}
           />
@@ -167,7 +170,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
                     onKeyDown={handleKeyPress}
                   />
                 </FormControl>
-                <FormMessage className="text-blue-1" />
+                <FormMessage className="text-black" />
               </FormItem>
             )}
           />
@@ -188,7 +191,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
                     }
                   />
                 </FormControl>
-                <FormMessage className="text-blue-1" />
+                <FormMessage className="text-black" />
               </FormItem>
             )}
           />
@@ -208,7 +211,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
                       onKeyDown={handleKeyPress}
                     />
                   </FormControl>
-                  <FormMessage className="text-blue-1" />
+                  <FormMessage className="text-black" />
                 </FormItem>
               )}
             />
@@ -226,7 +229,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
                       onKeyDown={handleKeyPress}
                     />
                   </FormControl>
-                  <FormMessage className="text-blue-1" />
+                  <FormMessage className="text-black" />
                 </FormItem>
               )}
             />
@@ -243,7 +246,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
                       onKeyDown={handleKeyPress}
                     />
                   </FormControl>
-                  <FormMessage className="text-blue-1" />
+                  <FormMessage className="text-black" />
                 </FormItem>
               )}
             />
@@ -265,7 +268,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
                       }
                     />
                   </FormControl>
-                  <FormMessage className="text-blue-1" />
+                  <FormMessage className="text-black" />
                 </FormItem>
               )}
             />
@@ -281,9 +284,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
                         placeholder="Collections"
                         collections={collections}
                         value={field.value}
-                        onChange={(_id) =>
-                          field.onChange([...field.value, _id])
-                        }
+                        onChange={(id) => field.onChange([...field.value, id])}
                         onRemove={(idToRemove) =>
                           field.onChange([
                             ...field.value.filter(
@@ -293,7 +294,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
                         }
                       />
                     </FormControl>
-                    <FormMessage className="text-blue-1" />
+                    <FormMessage className="text-black" />
                   </FormItem>
                 )}
               />
@@ -320,7 +321,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
                       }
                     />
                   </FormControl>
-                  <FormMessage className="text-blue-1" />
+                  <FormMessage className="text-black" />
                 </FormItem>
               )}
             />
@@ -346,20 +347,20 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
                       }
                     />
                   </FormControl>
-                  <FormMessage className="text-blue-1" />
+                  <FormMessage className="text-black" />
                 </FormItem>
               )}
             />
           </div>
 
           <div className="flex gap-10">
-            <Button type="submit" className="bg-blue-1 text-white">
+            <Button type="submit" className="bg-gray-700 text-white">
               Submit
             </Button>
             <Button
               type="button"
-              onClick={() => router.push("/products")}
-              className="bg-blue-1 text-white"
+              onClick={() => router.push("/admin/products")}
+              className="bg-gray-700 text-white"
             >
               Discard
             </Button>

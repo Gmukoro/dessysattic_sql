@@ -10,7 +10,7 @@ export const columns: ColumnDef<ProductType>[] = [
     header: "Title",
     cell: ({ row }) => (
       <Link
-        href={`/products/${row.original._id}`}
+        href={`/admin/products/${row.original.id}`}
         className="hover:text-blue-1"
       >
         {row.original.title}
@@ -24,8 +24,12 @@ export const columns: ColumnDef<ProductType>[] = [
   {
     accessorKey: "collections",
     header: "Collections",
-    cell: ({ row }) =>
-      row.original.collections.map((collection) => collection.title).join(", "),
+    cell: ({ row }) => {
+      const collections = row.original.collections;
+      return Array.isArray(collections)
+        ? collections.map((collection) => collection.title).join(", ")
+        : "No collections";
+    },
   },
   {
     accessorKey: "price",
@@ -37,6 +41,6 @@ export const columns: ColumnDef<ProductType>[] = [
   },
   {
     id: "actions",
-    cell: ({ row }) => <Delete item="product" id={row.original._id} />,
+    cell: ({ row }) => <Delete item="product" id={row.original.id} />,
   },
 ];

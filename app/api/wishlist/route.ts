@@ -23,9 +23,9 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
 
     const updatedWishlist = await addToWishlist(userId, body);
+    console.error(updatedWishlist);
     return NextResponse.json({ wishlist: updatedWishlist }, { status: 200 });
   } catch (error) {
-    console.error("Error in adding to wishlist:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }

@@ -7,7 +7,7 @@ export interface OrderAttributes {
   _id: string;
   products: Array<{
     product: {
-      _id: string;
+      id: string;
       title: string;
       media: string[];
       price: number;
@@ -60,7 +60,7 @@ export const initializeOrderTable = async () => {
 // Insert a new order
 export const createOrder = async (order: OrderAttributes) => {
   const insertQuery = `
-    INSERT INTO orders (_id, products, shippingAddress, shippingRate, totalAmount, createdAt, updatedAt, customerId)
+    INSERT INTO orders (id, products, shippingAddress, shippingRate, totalAmount, createdAt, updatedAt, customerId)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `;
   try {
@@ -86,9 +86,9 @@ export const createOrder = async (order: OrderAttributes) => {
 
 // Retrieve an order by ID
 export const getOrderById = async (
-  _id: string
+  id: string
 ): Promise<OrderAttributes | null> => {
-  const selectQuery = `SELECT * FROM orders WHERE _id = ?`;
+  const selectQuery = `SELECT * FROM orders WHERE id = ?`;
   try {
     const rows = await query({ query: selectQuery, values: [_id] });
     if (Array.isArray(rows) && rows.length > 0) {
@@ -134,7 +134,7 @@ export const getOrders = async (
 
 // Update an order
 export const updateOrder = async (
-  _id: string,
+  id: string,
   updateData: Partial<OrderAttributes>
 ) => {
   const updateQuery = `
@@ -152,7 +152,7 @@ export const updateOrder = async (
         updateData.totalAmount,
         new Date(),
         updateData.customerId,
-        _id,
+        id,
       ],
     });
     return result;
@@ -163,10 +163,10 @@ export const updateOrder = async (
 };
 
 // Delete an order by ID
-export const deleteOrder = async (_id: string) => {
+export const deleteOrder = async (id: string) => {
   const deleteQuery = `DELETE FROM orders WHERE _id = ?`;
   try {
-    const result = await query({ query: deleteQuery, values: [_id] });
+    const result = await query({ query: deleteQuery, values: [id] });
     return result;
   } catch (error) {
     console.error("Error deleting order:", error);

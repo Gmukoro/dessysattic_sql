@@ -9,32 +9,32 @@ import {
 
 export const navLinks = [
   {
-    url: "/",
+    url: "/admin",
     icon: <LayoutDashboard />,
     label: "Dashboard",
   },
   {
-    url: "/collections",
+    url: "/admin/collections",
     icon: <Shapes />,
     label: "Collections",
   },
   {
-    url: "/products",
+    url: "/admin/products",
     icon: <Tag />,
     label: "Products",
   },
   {
-    url: "/orders",
+    url: "/admin/orders",
     icon: <ShoppingBag />,
     label: "Orders",
   },
   {
-    url: "/customers",
+    url: "/admin/customers",
     icon: <UsersRound />,
     label: "Customers",
   },
   {
-    url: "/profile",
+    url: "/admin/profile",
     icon: <FiUser />,
     label: "Profile",
   },

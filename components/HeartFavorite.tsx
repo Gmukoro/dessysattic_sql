@@ -83,11 +83,11 @@ const HeartFavorite = ({ product, updateSignedInUser }: HeartFavoriteProps) => {
       aria-label={isLiked ? "Remove from wishlist" : "Add to wishlist"}
     >
       <Heart fill={isLiked ? "red" : "white"} />
-      {loading && (
+      {/* {loading && (
         <span className="h-6 w-6">
           <Loader />
         </span>
-      )}
+      )} */}
     </button>
   );
 };

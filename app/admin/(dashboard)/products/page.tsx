@@ -17,22 +17,35 @@ const Products = () => {
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<ProductType[]>([]);
 
-  const getProducts = async () => {
+  const fetchProducts = async () => {
+    setLoading(true);
     try {
-      const res = await fetch("/api/products", {
-        method: "GET",
-      });
-      const data = await res.json();
-      setProducts(data);
-      setLoading(false);
-    } catch (err) {
-      console.log("[products_GET]", err);
+      const res = await fetch("/api/products");
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Failed to fetch products:", res.status, errorText);
+        throw new Error(errorText);
+      }
+
+      try {
+        const data = await res.json(); // Try parsing JSON here
+        setProducts(data);
+      } catch (error) {
+        console.error("Failed to parse JSON:", error);
+        alert("Error fetching products. Please try again later.");
+      } finally {
+        setLoading(false); // Ensure loading is set to false when done
+      }
+    } catch (error) {
+      console.error("Failed to fetch products:", error);
+      setLoading(false); // Set loading to false in case of error
     }
   };
 
   useEffect(() => {
-    getProducts();
-  }, []);
+    fetchProducts(); // Fetch products on mount
+  }, []); // Empty dependency array means this runs once when the component mounts
 
   return loading ? (
     <Loader />
@@ -42,14 +55,14 @@ const Products = () => {
         <div className="flex items-center justify-between">
           <p className="text-heading2-bold">Products</p>
           <Button
-            className="bg-blue-1 text-white"
-            onClick={() => router.push("/products/new")}
+            className="bg-gray-700 text-white"
+            onClick={() => router.push("/admin/products/new")}
           >
             <Plus className="h-4 w-4 mr-2" />
             Create Product
           </Button>
         </div>
-        <Separator className="bg-grey-1 my-4" />
+        <Separator className="bg-grey-700 my-4" />
         <DataTable columns={columns} data={products} searchKey="title" />
       </div>
     </MainLayout>

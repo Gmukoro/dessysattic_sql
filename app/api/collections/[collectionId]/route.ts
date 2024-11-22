@@ -19,17 +19,17 @@ const validateSession = async () => {
 
 // GET: Fetch collection details (no session required)
 export async function GET(
-  req: Request,
+  req: NextRequest,
   context: { params: { collectionId: string } }
 ) {
   try {
-    // Ensure params are awaited before accessing
-    const { collectionId } = context.params;
+    // Await params before accessing
+    const { collectionId } = await context.params;
 
     // Validate and parse the collectionId
     const collectionIdInt = parseInt(collectionId, 10);
     if (isNaN(collectionIdInt)) {
-      return new Response("Invalid collection ID", { status: 400 });
+      return new NextResponse("Invalid collection ID", { status: 400 });
     }
 
     // Fetch collection details
@@ -38,19 +38,20 @@ export async function GET(
     );
 
     if (!collection) {
-      return new Response("Collection details not found", { status: 404 });
+      return new NextResponse("Collection details not found", { status: 404 });
     }
 
-    // return new Response(JSON.stringify(collection), {
-    //   status: 200,
-    //   headers: {
-    //     "Access-Control-Allow-Origin": `${process.env.ECOMMERCE_STORE_URL}`,
-    //     "Access-Control-Allow-Methods": "GET",
-    //     "Access-Control-Allow-Headers": "Content-Type",
-    //   },
-    // });
+    return new NextResponse(JSON.stringify(collection), {
+      status: 200,
+      headers: {
+        "Access-Control-Allow-Origin": `${process.env.ECOMMERCE_STORE_URL}`,
+        "Access-Control-Allow-Methods": "GET",
+        "Access-Control-Allow-Headers": "Content-Type",
+      },
+    });
   } catch (error) {
-    return new Response("Internal server error", { status: 500 });
+    console.error(error);
+    return new NextResponse("Internal server error", { status: 500 });
   }
 }
 

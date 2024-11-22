@@ -4,7 +4,7 @@ import {
   getProductById,
   updateProduct,
   deleteProduct,
-  updateProductCollections,
+  createProduct,
 } from "@/lib/models/Product";
 
 // GET Product by ID
@@ -13,12 +13,13 @@ export const GET = async (
   { params }: { params: { productId: string } }
 ) => {
   try {
-    const productId = parseInt(params.productId, 10); // Parse productId safely
-    if (isNaN(productId)) {
+    const { productId } = params;
+    const id = parseInt(productId, 10);
+    if (isNaN(id)) {
       return new NextResponse("Invalid product ID", { status: 400 });
     }
 
-    const product = await getProductById(productId);
+    const product = await getProductById(id);
     if (!product) {
       return new NextResponse("Product not found", { status: 404 });
     }
@@ -38,36 +39,24 @@ export const GET = async (
 };
 
 // POST: Update Product Information
-export const POST = async (
-  req: NextRequest,
-  { params }: { params: { productId: string } }
-) => {
+export const POST = async (req: NextRequest) => {
   try {
     const session = await auth();
     if (!session || !session.user) {
       return new NextResponse("Unauthorized", { status: 403 });
     }
 
-    const productId = parseInt(params.productId, 10);
-    if (isNaN(productId)) {
-      return new NextResponse("Invalid product ID", { status: 400 });
-    }
-
-    const updateData = await req.json();
-    if (!updateData.title || !updateData.category || !updateData.price) {
+    const productData = await req.json();
+    if (!productData.title || !productData.media || !productData.price) {
       return new NextResponse("Missing required fields", { status: 400 });
     }
 
-    const updatedProduct = await updateProduct(productId, updateData);
-
-    // Update associated collections
-    if (updateData.collections) {
-      await updateProductCollections(productId, updateData.collections);
-    }
+    // Update product in the database
+    const updatedProduct = await updateProduct(productData.id, productData);
 
     return new NextResponse(JSON.stringify(updatedProduct), { status: 200 });
   } catch (err) {
-    console.error("[productId_POST]", err);
+    console.error("[updateProduct_POST]", err);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 };
@@ -83,17 +72,16 @@ export const DELETE = async (
       return new NextResponse("Unauthorized", { status: 403 });
     }
 
-    const productId = parseInt(params.productId, 10);
-    if (isNaN(productId)) {
+    const { productId } = params;
+    const id = parseInt(productId, 10);
+    if (isNaN(id)) {
       return new NextResponse("Invalid product ID", { status: 400 });
     }
 
-    await deleteProduct(productId);
+    await deleteProduct(id);
     return new NextResponse("Product deleted successfully", { status: 200 });
   } catch (err) {
     console.error("[productId_DELETE]", err);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 };
-
-export const dynamic = "force-dynamic";

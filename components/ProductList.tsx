@@ -42,9 +42,9 @@ function ProductList() {
 
   if (loading) {
     return (
-      <div className="">
-        <Loader />
-      </div>
+      <div className="flex items-center justify-center min-h-screen">
+      <Loader className="animate-spin" />
+    </div>
     );
   }
 
@@ -75,9 +75,9 @@ export default function ProductListWithSuspense() {
   return (
     <Suspense
       fallback={
-        <div>
-          <Loader />
-        </div>
+        <div className="flex items-center justify-center min-h-screen">
+        <Loader className="animate-spin" />
+      </div>
       }
     >
       <ProductList />

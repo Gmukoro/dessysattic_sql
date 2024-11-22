@@ -1,23 +1,20 @@
-//app\api\orders\route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import { format } from "date-fns";
-import { getOrders, getOrdersWithCustomerDetails } from "@/lib/models/Order";
+import { getOrdersWithCustomerDetails } from "@/lib/models/Order";
 
 export const GET = async (req: NextRequest) => {
   try {
-    // Fetch all orders with customer details
     const ordersResult = await getOrdersWithCustomerDetails();
 
-    if (ordersResult.length === 0) {
-      return new NextResponse(JSON.stringify({ message: "No orders found" }), {
-        status: 404,
-      });
+    if (!ordersResult || ordersResult.length === 0) {
+      return new NextResponse(
+        JSON.stringify({ message: "No orders found at /orders" }),
+        { status: 404 }
+      );
     }
 
-    // Format the response
     const orderDetails = ordersResult.map((order) => ({
-      _id: order._id,
+      id: order.id,
       customer: order.customerName,
       products: order.products.length,
       totalAmount: order.totalAmount,
@@ -31,4 +28,5 @@ export const GET = async (req: NextRequest) => {
   }
 };
 
+// Ensures server-side execution
 export const dynamic = "force-dynamic";

@@ -1,18 +1,32 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import ProductDetailsMain from "@/components/ProductDetailsMain";
 import ProductCard from "@/components/ProductCard";
 import Reviews from "@/components/Reviews";
 import React from "react";
+import Loader from "@/components/Loader";
 
 // Define the types for your params
 type Params = {
   productId: string;
 };
 
-const ProductDetails = ({ params }: { params: Params }) => {
-  const productId = params.productId;
+const ProductDetails = ({
+  params,
+}: {
+  params: Promise<{ productId: string }>;
+}) => {
+  const [productId, setProductId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchProductId = async () => {
+      const resolvedParams = await params;
+      setProductId(resolvedParams.productId);
+    };
+
+    fetchProductId();
+  }, [params]);
 
   const [productDetails, setProductDetails] = useState<ProductType | null>(
     null
@@ -55,9 +69,9 @@ const ProductDetails = ({ params }: { params: Params }) => {
 
   if (!productDetails) {
     return (
-      <p className="text-heading2-bold text-4xl text-gray-700">
-        Failed to load product details
-      </p>
+      <div className="text-heading2-bold items-center text-4xl text-gray-700">
+        <Loader />
+      </div>
     );
   }
 
@@ -82,7 +96,7 @@ const ProductDetails = ({ params }: { params: Params }) => {
           </div>
         </div>
         <div className="w-full my-4">
-          <Reviews productId={productId} />
+          {productId && <Reviews productId={productId} />}
         </div>
       </div>
     </>

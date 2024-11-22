@@ -62,7 +62,7 @@ const CollectionForm: React.FC<CollectionFormProps> = ({ initialData }) => {
     try {
       setLoading(true);
       const url = initialData
-        ? `/api/collections/${initialData._id}`
+        ? `/api/collections/${initialData.id}`
         : "/api/collections";
       const res = await fetch(url, {
         method: "POST",
@@ -71,8 +71,8 @@ const CollectionForm: React.FC<CollectionFormProps> = ({ initialData }) => {
       if (res.ok) {
         setLoading(false);
         toast.success(`Collection ${initialData ? "updated" : "created"}`);
-        window.location.href = "/collections";
-        router.push("/collections");
+        window.location.href = "/admin/collections";
+        router.push("/admin/collections");
       }
     } catch (err) {
       console.log("[collections_POST]", err);
@@ -84,13 +84,13 @@ const CollectionForm: React.FC<CollectionFormProps> = ({ initialData }) => {
     <div className="p-10">
       {initialData ? (
         <div className="flex items-center justify-between">
-          <p className="text-heading2-bold">Edit Collection</p>
-          <Delete id={initialData._id} item="collection" />
+          <p className="text-heading2-bold text-black">Edit Collection</p>
+          <Delete id={initialData.id} item="collection" />
         </div>
       ) : (
         <p className="text-heading2-bold">Create Collection</p>
       )}
-      <Separator className="bg-grey-1 mt-4 mb-7" />
+      <Separator className="bg-gray-500 mt-4 mb-7" />
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           <FormField
@@ -146,13 +146,13 @@ const CollectionForm: React.FC<CollectionFormProps> = ({ initialData }) => {
             )}
           />
           <div className="flex gap-10">
-            <Button type="submit" className="bg-blue-1 text-white">
+            <Button type="submit" className="bg-gray-700 text-white">
               Submit
             </Button>
             <Button
               type="button"
-              onClick={() => router.push("/collections")}
-              className="bg-blue-1 text-white"
+              onClick={() => router.push("/admin/collections")}
+              className="bg-gray-700 text-white"
             >
               Discard
             </Button>

@@ -1,10 +1,9 @@
-
-
 "use client";
 import { useCurrencyContext } from "@/lib/context/currencyContext";
 import Image from "next/image";
 import Link from "next/link";
 import HeartFavorite from "./HeartFavorite";
+import { useEffect, useState } from "react";
 
 interface ProductCardProps {
   product: ProductType;
@@ -26,7 +25,17 @@ const ProductCard = ({ product, updateSignedInUser }: ProductCardProps) => {
   // Parse the product price before using it
   const parsedPrice = parsePrice(product.price);
 
-  // Determine the correct image source (fallback if needed)
+  // State to store the converted price
+  const [convertedPrice, setConvertedPrice] = useState<number | null>(null);
+
+  // Fetch the converted price when selectedCurrency or parsedPrice changes
+  useEffect(() => {
+    if (parsedPrice && selectedCurrency) {
+      const newPrice = convertPrice(parsedPrice, "EUR", selectedCurrency);
+      setConvertedPrice(newPrice);
+    }
+  }, [selectedCurrency, parsedPrice, convertPrice]);
+
   const imageSrc =
     product.media?.[0] ||
     product.media?.[1] ||
@@ -59,7 +68,10 @@ const ProductCard = ({ product, updateSignedInUser }: ProductCardProps) => {
           {selectedCurrency === "CAD" && "CA$"}
           {selectedCurrency === "NGN" && "₦"}
           {selectedCurrency === "GBP" && "£"}{" "}
-          {convertPrice(parsedPrice, "EUR", selectedCurrency).toFixed(2)}
+          {/* Display the converted price */}
+          {convertedPrice !== null
+            ? convertedPrice.toFixed(2)
+            : parsedPrice.toFixed(2)}
         </p>
         <HeartFavorite product={product} />
       </div>

@@ -11,11 +11,14 @@ export async function GET(req: NextRequest) {
     }
 
     const user = await getUserById(session.user.id);
+    console.log(session.user.id)
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     return NextResponse.json({ wishlist: user.wishlist }, { status: 200 });
+    console.log( user.wishlist)
+
   } catch (error) {
     console.error("Error fetching user data:", error);
     return NextResponse.json(

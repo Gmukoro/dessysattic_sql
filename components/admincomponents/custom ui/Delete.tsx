@@ -35,7 +35,7 @@ const Delete: React.FC<DeleteProps> = ({ item, id }) => {
 
       if (res.ok) {
         setLoading(false);
-        window.location.href = `/${itemType}`;
+        window.location.href = `/admin/${itemType}`;
         toast.success(`${item} deleted`);
       }
     } catch (err) {
@@ -46,13 +46,13 @@ const Delete: React.FC<DeleteProps> = ({ item, id }) => {
   return (
     <AlertDialog>
       <AlertDialogTrigger>
-        <Button className="bg-blue-1 text-white">
+        <Button className="bg-gray-500 text-white">
           <Trash className="h-4 w-4" />
         </Button>
       </AlertDialogTrigger>
-      <AlertDialogContent className="bg-white text-grey-1">
+      <AlertDialogContent className="bg-gray-400 text-black">
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-blue-1">
+          <AlertDialogTitle className="text-amber-950">
             Are you absolutely sure?
           </AlertDialogTitle>
           <AlertDialogDescription>
@@ -62,7 +62,10 @@ const Delete: React.FC<DeleteProps> = ({ item, id }) => {
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction className="bg-blue-1 text-white" onClick={onDelete}>
+          <AlertDialogAction
+            className="bg-gray-400 text-red-600"
+            onClick={onDelete}
+          >
             Delete
           </AlertDialogAction>
         </AlertDialogFooter>

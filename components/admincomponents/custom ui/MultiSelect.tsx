@@ -39,7 +39,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
     selected = [];
   } else {
     selected = value.map((id) =>
-      collections.find((collection) => collection._id === id)
+      collections.find((collection) => collection.id === id)
     ) as CollectionType[];
   }
 
@@ -51,12 +51,12 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
     <Command className="overflow-visible bg-white">
       <div className="flex gap-1 flex-wrap border rounded-md">
         {selected.map((collection) => (
-          <Badge key={collection._id}>
+          <Badge key={collection.id}>
             {collection.title}
             <button
               type="button"
               className="ml-1 hover:text-blue-1"
-              onClick={() => onRemove(collection._id)}
+              onClick={() => onRemove(collection.id)}
             >
               <X className="h-3 w-3" />
             </button>
@@ -77,10 +77,10 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
           <CommandGroup className="absolute w-full z-30 top-0 overflow-auto border rounded-md shadow-md">
             {selectables.map((collection) => (
               <CommandItem
-                key={collection._id}
+                key={collection.id}
                 onMouseDown={(e) => e.preventDefault()}
                 onSelect={() => {
-                  onChange(collection._id);
+                  onChange(collection.id);
                   setInputValue("");
                 }}
                 className="hover:bg-grey-2 cursor-pointer"

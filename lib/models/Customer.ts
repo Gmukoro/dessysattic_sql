@@ -73,6 +73,25 @@ export const getCustomerById = async (id: string) => {
   }
 };
 
+// Fetch all customers
+export const getAllCustomers = async () => {
+  const selectQuery = `SELECT * FROM customers`;
+  try {
+    const result = await query({ query: selectQuery });
+
+    // Type guard to ensure result is an array
+    if (Array.isArray(result)) {
+      return result as CustomerAttributes[];
+    }
+
+    // Return an empty array if no customers are found
+    return [];
+  } catch (error) {
+    console.error("Error fetching all customers:", error);
+    throw error;
+  }
+};
+
 // Update a customer
 export const updateCustomer = async (
   id: string,

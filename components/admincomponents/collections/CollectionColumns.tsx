@@ -10,7 +10,7 @@ export const columns: ColumnDef<CollectionType>[] = [
     header: "Title",
     cell: ({ row }) => (
       <Link
-        href={`/collections/${row.original._id}`}
+        href={`/admin/collections/${row.original.id}`}
         className="hover:text-blue-1"
       >
         {row.original.title}
@@ -20,10 +20,10 @@ export const columns: ColumnDef<CollectionType>[] = [
   {
     accessorKey: "products",
     header: "Products",
-    cell: ({ row }) => <p>{row.original.products.length}</p>,
+    cell: ({ row }) => <p>{row.original.products?.length}</p>,
   },
   {
     id: "actions",
-    cell: ({ row }) => <Delete item="collection" id={row.original._id} />,
+    cell: ({ row }) => <Delete item="collection" id={row.original.id} />,
   },
 ];

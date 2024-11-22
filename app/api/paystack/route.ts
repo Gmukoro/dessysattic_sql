@@ -140,14 +140,14 @@ export async function POST(req: NextRequest) {
     if (session.status) {
       // Proceed with order and customer creation
       const orderItems = cartItems.map((item: any) => ({
-        product: item.item._id,
+        product: item.item.id,
         color: item.color || "N/A",
         size: item.size || "N/A",
         quantity: item.quantity,
       }));
 
       const newOrderData = {
-        _id: "",
+        id: "",
         products: orderItems,
         shippingAddress: delivery,
         shippingRate: deliveryFee.toString(),

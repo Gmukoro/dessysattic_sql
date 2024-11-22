@@ -1,5 +1,3 @@
-// app/api/reviews/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import { getAllReviews } from "@/lib/models/reviews";
 
@@ -15,11 +13,12 @@ export const OPTIONS = async () => {
   return new NextResponse(null, { status: 204, headers: corsHeaders });
 };
 
+// GET: Retrieve all reviews
 export const GET = async (req: NextRequest) => {
   try {
-    // Fetch all reviews using the model function
     const allReviews = await getAllReviews();
 
+    // If no reviews found, return a 404 status
     if (!allReviews || allReviews.length === 0) {
       return new NextResponse("No reviews found", {
         status: 404,
@@ -27,13 +26,13 @@ export const GET = async (req: NextRequest) => {
       });
     }
 
-    // Return the reviews in JSON format
+    // Return reviews as JSON response
     return NextResponse.json(allReviews, {
       status: 200,
       headers: corsHeaders,
     });
-  } catch (err) {
-    console.error("[reviews_GET]", err);
+  } catch (error) {
+    console.error("[GET All Reviews Error]", error);
     return new NextResponse("Internal Server Error", {
       status: 500,
       headers: corsHeaders,

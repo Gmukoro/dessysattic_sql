@@ -6,6 +6,7 @@ import { ToasterProvider } from "@/lib/ToasterProvider";
 import Providers from "./providers";
 import VerificationStatus from "@/components/VerificationStatus";
 import { auth } from "@/auth";
+import router, { redirect } from "next/navigation";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,6 +21,14 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const session = await auth();
+
+  // if (status === "loading") return <p>Loading...</p>;
+  // if (status === "unauthenticated" || !session?.user.isAdmin) {
+  //   // If the user is not authenticated or not an admin, redirect them
+  //   redirect("/unauthenticated");
+
+  //   return null;
+  // }
 
   return (
     <html lang="en">

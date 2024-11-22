@@ -1,11 +1,11 @@
 import { DataTable } from "@/components/admincomponents/custom ui/DataTable";
 import { columns } from "@/components/admincomponents/customers/CustomerColumns";
 import { Separator } from "@/components/admincomponents/ui/separator";
-import Customer from "@/lib/models/Customer";
+import {getAllCustomers} from "@/lib/models/Customer";
 import MainLayout from "@/components/admincomponents/MainLayout";
 
 const Customers = async () => {
-  const customers = await Customer.findAll({
+  const customers = await getAllCustomers({
     order: [["createdAt", "DESC"]],
   });
 

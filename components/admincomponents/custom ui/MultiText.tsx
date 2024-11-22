@@ -43,7 +43,7 @@ const MultiText: React.FC<MultiTextProps> = ({
 
       <div className="flex gap-1 flex-wrap mt-4">
         {value.map((item, index) => (
-          <Badge key={index} className="bg-grey-1 text-white">
+          <Badge key={index} className="bg-gray-700 text-white">
             {item}
             <button
               className="ml-1 rounded-full outline-none hover:bg-blue-1"

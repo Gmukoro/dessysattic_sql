@@ -2,15 +2,16 @@
 type CollectionType = {
   id: string;
   title: string;
-  description?: string;
+  description: string;
   image: string;
-  products: ProductType[];
+  products?: ProductType[];
   createdAt?: Date;
   updatedAt?: Date;
 };
 
 // Product Type
 type ProductType = {
+  item: any;
   id: string;
   title: string;
   description: string;
@@ -20,7 +21,7 @@ type ProductType = {
   sizes: string[];
   colors: string[];
   price: number;
-  collections: string | string[];
+  collections: CollectionType[];
   expense: number;
   createdAt?: Date;
   updatedAt?: Date;
@@ -28,7 +29,7 @@ type ProductType = {
 };
 
 type OrderColumnType = {
-  _id: string;
+  id: string;
   customer: string;
   products: number;
   totalAmount?: number;
@@ -36,7 +37,7 @@ type OrderColumnType = {
 };
 
 type OrderItemProductType = {
-  _id: string;
+  id: string;
   title: string;
   media: string[];
   price: number;
@@ -48,7 +49,7 @@ type OrderItemProductType = {
 };
 
 type OrderType = {
-  _id: string;
+  id: string;
   products: OrderItemType[];
   shippingAddress: ShippingAddress;
   shippingRate: string;

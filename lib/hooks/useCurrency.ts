@@ -1,5 +1,3 @@
-//lib\hooks\useCurrency.ts
-
 import { useState, useEffect, useCallback, useRef } from "react";
 import { fetchCurrencyRates } from "../currency";
 import Cookies from "js-cookie";
@@ -35,6 +33,7 @@ export const useCurrency = () => {
     }
   }, [selectedCurrency]);
 
+  // Effect to check if we have cached prices for 7 days
   useEffect(() => {
     const storedPrices = localStorage.getItem("convertedPrices");
     const storedTime = localStorage.getItem("conversionTime");
@@ -49,6 +48,7 @@ export const useCurrency = () => {
     }
   }, [currencyRates]);
 
+  // Currency conversion function
   const convertPrice = useCallback(
     (price: number, from: string, to: string) => {
       if (!currencyRates || !currencyRates[to] || !currencyRates[from]) {
@@ -69,11 +69,11 @@ export const useCurrency = () => {
       // Store the converted price in the ref
       convertedPricesRef.current[priceKey] = convertedPrice;
 
-      // Update converted prices state only if it's not already cached
+      // Update converted prices state after the conversion
       setConvertedPrices((prev) => {
         const updatedPrices = { ...prev, [priceKey]: convertedPrice };
 
-        // Save to localStorage
+        // Save to localStorage after conversion
         localStorage.setItem("convertedPrices", JSON.stringify(updatedPrices));
         localStorage.setItem("conversionTime", Date.now().toString());
 

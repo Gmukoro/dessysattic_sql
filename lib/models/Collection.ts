@@ -4,9 +4,9 @@ import { getProductIdsByCriteria, ProductAttributes } from "./Product";
 
 // Define the Collection interface
 export interface CollectionAttributes {
-  id: number;
+  id: string;
   title: string;
-  description?: string;
+  description: string;
   image: string;
   createdAt?: Date;
   updatedAt?: Date;

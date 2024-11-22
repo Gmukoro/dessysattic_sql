@@ -6,26 +6,20 @@ export const GET = async (
   { params }: { params: { productId: string } }
 ) => {
   try {
-    const productId = parseInt(params.productId, 10);
-    if (isNaN(productId)) {
-      return new NextResponse(
-        JSON.stringify({ message: "Invalid product ID" }),
-        { status: 400 }
-      );
+    const { productId } = params;
+    const id = parseInt(productId, 10);
+    if (isNaN(id)) {
+      return new NextResponse("Invalid product ID", { status: 400 });
     }
 
     // Fetch product details by ID
-    const product = await getProductById(productId);
-
+    const product = await getProductById(id);
     if (!product) {
-      return new NextResponse(
-        JSON.stringify({ message: "Product not found" }),
-        { status: 404 }
-      );
+      return new NextResponse("Product not found", { status: 404 });
     }
 
-    // Fetch related products based on the product's category
-    const relatedProducts = await getRelatedProducts(product);
+    // Fetch related products based on the product's ID (not the entire product object)
+    const relatedProducts = await getRelatedProducts(id);
 
     if (relatedProducts.length === 0) {
       return new NextResponse(
