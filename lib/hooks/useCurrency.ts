@@ -8,11 +8,11 @@ export const useCurrency = () => {
 
   // UseRef to store converted prices without causing re-renders
   const convertedPricesRef = useRef<{ [key: string]: number }>({});
-
   const [convertedPrices, setConvertedPrices] = useState<{
     [key: string]: number;
   }>({});
 
+  // Load currency data and set initial selected currency
   useEffect(() => {
     const savedCurrency = Cookies.get("selectedCurrency");
     if (savedCurrency) {
@@ -27,13 +27,14 @@ export const useCurrency = () => {
     loadCurrencyData();
   }, []);
 
+  // Set selected currency in cookies
   useEffect(() => {
     if (selectedCurrency) {
       Cookies.set("selectedCurrency", selectedCurrency, { expires: 365 });
     }
   }, [selectedCurrency]);
 
-  // Effect to check if we have cached prices for 7 days
+  // Check for cached prices in localStorage
   useEffect(() => {
     const storedPrices = localStorage.getItem("convertedPrices");
     const storedTime = localStorage.getItem("conversionTime");
@@ -72,30 +73,25 @@ export const useCurrency = () => {
       // Store the converted price in the ref (doesn't trigger re-renders)
       convertedPricesRef.current[priceKey] = roundedPrice;
 
-      // UseEffect to update state after render to avoid render cycle issues
-      setConvertedPrices((prev) => {
-        const updatedPrices = { ...prev, [priceKey]: roundedPrice };
-
-        // Save to localStorage after conversion
-        localStorage.setItem("convertedPrices", JSON.stringify(updatedPrices));
-        localStorage.setItem("conversionTime", Date.now().toString());
-
-        return updatedPrices;
-      });
-
+      // Return converted price directly
       return roundedPrice;
     },
     [currencyRates]
   );
 
-  // Defer state updates after render to avoid the warning
+  // UseEffect to update converted prices state after render
   useEffect(() => {
+    // Update state only when the ref has new data
     if (Object.keys(convertedPricesRef.current).length > 0) {
       const updatedPrices = {
         ...convertedPrices,
         ...convertedPricesRef.current,
       };
+
+      // Avoid updating state during render cycle
       setConvertedPrices(updatedPrices);
+
+      // Save updated prices to localStorage
       localStorage.setItem("convertedPrices", JSON.stringify(updatedPrices));
       localStorage.setItem("conversionTime", Date.now().toString());
     }

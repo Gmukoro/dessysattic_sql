@@ -66,14 +66,12 @@ export const {
       },
     }),
   ],
+
   secret: process.env.JWT_SECRET,
   session: {
     strategy: "jwt",
   },
-  pages: {
-    signIn: "/auth/SignIn",
-    error: "/auth/error",
-  },
+
   callbacks: {
     async signIn({ account, profile }) {
       if (account?.provider === "credentials") {

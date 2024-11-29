@@ -3,7 +3,6 @@
 import { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { SessionProvider, useSession } from "next-auth/react";
-
 import "../globals.css";
 import Navbar from "@/components/Navbartt";
 import ToasterProvider from "@/lib/providers/ToasterProvider";
