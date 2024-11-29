@@ -31,7 +31,7 @@ const formSchema = z.object({
   title: z.string().min(2).max(20),
   description: z.string().min(2).max(500).trim(),
   media: z.array(z.string()),
-  category: z.string(),
+  category: z.array(z.string()),
   collections: z.array(z.string()),
   tags: z.array(z.string()),
   sizes: z.array(z.string()),
@@ -72,24 +72,24 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData
-      ? {
-          ...initialData,
-          collections: initialData.collections.map(
-            (collection) => collection.id
-          ),
-        }
-      : {
-          title: "",
-          description: "",
-          media: [],
-          category: "",
-          collections: [],
-          tags: [],
-          sizes: [],
-          colors: [],
-          price: 0.1,
-          expense: 0.1,
-        },
+    ? {
+        ...initialData,
+        collections: initialData.collections.map((collection) => collection.id),
+        category: initialData.category || [],
+      }
+    : {
+        title: "",
+        description: "",
+        media: [],
+        category: [],
+        collections: [],
+        tags: [],
+        sizes: [],
+        colors: [],
+        price: 0.1,
+        expense: 0.1,
+      },
+  
   });
 
   const handleKeyPress = (
@@ -240,10 +240,19 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
                 <FormItem>
                   <FormLabel>Category</FormLabel>
                   <FormControl>
-                    <Input
+                    <MultiText
                       placeholder="Category"
-                      {...field}
-                      onKeyDown={handleKeyPress}
+                      value={field.value}
+                      onChange={(newCategory) =>
+                        field.onChange([...field.value, newCategory])
+                      }
+                      onRemove={(categoryToRemove) =>
+                        field.onChange([
+                          ...field.value.filter(
+                            (category) => category !== categoryToRemove
+                          ),
+                        ])
+                      }
                     />
                   </FormControl>
                   <FormMessage className="text-black" />

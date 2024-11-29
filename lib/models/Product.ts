@@ -1,23 +1,42 @@
 import { query } from "@/lib/database";
-import { OkPacket, RowDataPacket } from "mysql2";
+import { OkPacket, ResultSetHeader, RowDataPacket } from "mysql2";
 
 interface PriceRange {
   min: number;
   max: number;
 }
+
+// Helper function to parse JSON safely
+const parseJsonSafe = (data: any): any => {
+  try {
+    // Only attempt to parse if the data looks like a JSON array or object
+    if (
+      typeof data === "string" &&
+      (data.startsWith("[") || data.startsWith("{"))
+    ) {
+      return JSON.parse(data || "[]");
+    }
+    // Return data as-is if it's not a JSON string
+    return data;
+  } catch (error) {
+    console.error("Invalid JSON format:", data);
+    return data;
+  }
+};
+
 // Product interface definition
 export interface ProductAttributes {
   id: string;
   title: string;
   description: string;
   media: string[];
-  category: string;
+  category: string[];
   tags: string[];
   sizes: string[];
   colors: string[];
   price: number;
   expense: number;
-  collections: string[];
+  collections: CollectionType[];
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -25,26 +44,6 @@ export interface ProductAttributes {
 // Constants for Table Names
 const PRODUCTS_TABLE = "products";
 const COLLECTIONS_TABLE = "collection_products";
-
-// Initialize ProductCollections table
-export const initializeProductCollectionsTable = async () => {
-  const createTableQuery = `
-    CREATE TABLE IF NOT EXISTS collection_products (
-      productId INT UNSIGNED NOT NULL,
-      collectionId INT UNSIGNED NOT NULL,
-      PRIMARY KEY (productId, collectionId),
-      FOREIGN KEY (productId) REFERENCES products(id) ON DELETE CASCADE,
-      FOREIGN KEY (collectionId) REFERENCES collections(id) ON DELETE CASCADE
-    );
-  `;
-
-  try {
-    await query({ query: createTableQuery });
-    console.log("collection_products table initialized successfully.");
-  } catch (error) {
-    console.error("Error initializing collection_products table:", error);
-  }
-};
 
 // Initialize indexes
 export const initializeIndexes = async () => {
@@ -65,7 +64,9 @@ export const initializeIndexes = async () => {
 };
 
 // Create a new product and automatically bind it to collections
-export const createProduct = async (product: ProductAttributes) => {
+export const createProduct = async (
+  product: ProductAttributes
+): Promise<OkPacket | null> => {
   const {
     title,
     description,
@@ -78,45 +79,63 @@ export const createProduct = async (product: ProductAttributes) => {
     price,
   } = product;
 
-  try {
-    const insertProductQuery = `
-      INSERT INTO ${PRODUCTS_TABLE} (title, description, media, collections, category, tags, sizes, colors, price, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-    `;
+  const insertProductQuery = `
+    INSERT INTO ${PRODUCTS_TABLE} (title, description, media, category, tags, sizes, colors, price, createdAt, updatedAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+  `;
 
+  try {
+    // Insert the product into the database
     const result = await query({
       query: insertProductQuery,
       values: [
         title || "",
         description || "",
         JSON.stringify(media || []),
-        category || "Uncategorized",
+        JSON.stringify(category || []),
         JSON.stringify(tags || []),
-        JSON.stringify(collections || []),
         JSON.stringify(sizes || []),
         JSON.stringify(colors || []),
         price || 0.0,
       ],
     });
 
+    // Ensure result is an OkPacket and extract insertId
     const okResult = result as OkPacket;
     const productId = okResult.insertId;
 
+    // If collections are provided, check for their existence and bind the product to them
     if (collections && collections.length > 0) {
-      const collectionBindings = collections.map((collectionId: string) => [
-        productId,
-        collectionId,
-      ]);
+      for (const collectionName of collections) {
+        // Query to find the collection by name
+        const collectionQuery = `SELECT id FROM ${COLLECTIONS_TABLE} WHERE title = ?`;
+        const collectionResult = (await query({
+          query: collectionQuery,
+          values: [collectionName],
+        })) as RowDataPacket[];
 
-      await query({
-        query: `INSERT INTO ${COLLECTIONS_TABLE} (productId, collectionId) VALUES ?`,
-        values: [collectionBindings],
-      });
+        if (collectionResult.length > 0) {
+          // Collection exists, retrieve its ID
+          const collectionId = collectionResult[0].id;
 
-      console.log("Product successfully bound to collections.");
+          // Insert the product-collection relationship
+          await query({
+            query: `INSERT INTO ${COLLECTIONS_TABLE} (productId, collectionId) VALUES (?, ?)`,
+            values: [productId, collectionId],
+          });
+
+          console.log(
+            `Product successfully bound to collection: ${collectionName}`
+          );
+        } else {
+          console.log(
+            `Collection '${collectionName}' does not exist. Skipping binding.`
+          );
+        }
+      }
     }
 
-    return result;
+    return okResult;
   } catch (error) {
     console.error("Error creating product:", error);
     throw error;
@@ -126,34 +145,31 @@ export const createProduct = async (product: ProductAttributes) => {
 // Fetch all products from the database
 export const getAllProducts = async (): Promise<ProductAttributes[]> => {
   try {
-    const selectQuery = `SELECT * FROM products`;
-    const result = (await query({
-      query: selectQuery,
-    })) as RowDataPacket[];
+    const selectAllProductsQuery = `SELECT p.* FROM products p`;
+    const results = await query({ query: selectAllProductsQuery });
 
-    const products: ProductAttributes[] = result.map((row) => ({
+    const products = results as RowDataPacket[];
+    return products.map((row) => ({
       id: row.id,
       title: row.title,
       description: row.description,
-      media: JSON.parse(row.media),
-      category: row.category,
-      tags: JSON.parse(row.tags),
-      sizes: JSON.parse(row.sizes),
-      colors: JSON.parse(row.colors),
-      collections: JSON.parse(row.collections),
+      media: parseJsonSafe(row.media),
+      category: parseJsonSafe(row.category),
+      tags: parseJsonSafe(row.tags),
+      sizes: parseJsonSafe(row.sizes),
+      colors: parseJsonSafe(row.colors),
       price: row.price,
       expense: row.expense || 0,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
+      collections: parseJsonSafe(row.collections),
+      createdAt: row.createdAt ? new Date(row.createdAt) : undefined,
+      updatedAt: row.updatedAt ? new Date(row.updatedAt) : undefined,
     }));
-
-    console.log("Fetched products:", products); // Log the result to ensure it's correct
-    return products;
-  } catch (err) {
-    console.error("[getAllProducts Error]:", err); // Log any database errors
-    throw err;
+  } catch (error) {
+    console.error("Error fetching all products:", error);
+    throw error;
   }
 };
+
 // Fetch product IDs by criteria
 export const getProductIdsByCriteria = async (
   criteria: Partial<ProductAttributes> & { priceRange?: PriceRange }
@@ -168,7 +184,7 @@ export const getProductIdsByCriteria = async (
   }
   if (category) {
     condition += " AND category = ?";
-    values.push(category);
+    values.push(`%${category}%`);
   }
   if (priceRange) {
     condition += " AND price BETWEEN ? AND ?";
@@ -176,7 +192,7 @@ export const getProductIdsByCriteria = async (
   }
 
   try {
-    const selectQuery = `SELECT id FROM products WHERE ${condition}`;
+    const selectQuery = `SELECT id FROM ${PRODUCTS_TABLE} WHERE ${condition}`;
     const rows = (await query({
       query: selectQuery,
       values,
@@ -189,19 +205,49 @@ export const getProductIdsByCriteria = async (
 };
 
 // Get product by ID
-export const getProductById = async (
+export const fetchProductById = async (
   id: number
 ): Promise<ProductAttributes | null> => {
+  const queryString = `
+    SELECT * FROM products WHERE id = ?;
+  `;
+
   try {
-    const selectQuery = `SELECT * FROM products WHERE id = ?`;
-    const rows = (await query({
-      query: selectQuery,
+    // Execute query and get result
+    const result = await query({
+      query: queryString,
       values: [id],
-    })) as RowDataPacket[];
-    return rows.length ? (rows[0] as ProductAttributes) : null;
+    });
+
+    // Assuming `result` is an array of rows
+    const rows = result as RowDataPacket[];
+
+    // If no rows are returned, return null
+    if (rows.length === 0) {
+      return null;
+    }
+
+    const product = rows[0];
+
+    // Map the returned row to ProductAttributes type
+    const productAttributes: ProductAttributes = {
+      id: product.id,
+      title: product.title,
+      description: product.description,
+      price: product.price,
+      expense: product.expense,
+      media: parseJsonSafe(product.media),
+      category: parseJsonSafe(product.category),
+      tags: parseJsonSafe(product.tags),
+      sizes: parseJsonSafe(product.sizes),
+      colors: parseJsonSafe(product.colors),
+      collections: parseJsonSafe(product.collections),
+    };
+
+    return productAttributes;
   } catch (error) {
-    console.error("Error retrieving product:", error);
-    throw error;
+    console.error("Error fetching product by ID:", error);
+    return null;
   }
 };
 
@@ -224,7 +270,7 @@ export const updateProduct = async (
         updateData.title,
         updateData.description,
         JSON.stringify(updateData.media || []),
-        updateData.category,
+        JSON.stringify(updateData.category || []),
         JSON.stringify(updateData.tags || []),
         JSON.stringify(updateData.sizes || []),
         JSON.stringify(updateData.colors || []),
@@ -295,8 +341,149 @@ export const getCollectionsForProduct = async (
   }
 };
 
-// Fetch related products by product ID
-export const getRelatedProducts = async (
+// Fetch products for a collection
+export const getProductsForCollection = async (
+  collectionId: number
+): Promise<ProductAttributes[]> => {
+  try {
+    const selectQuery = `
+      SELECT p.* 
+      FROM products p 
+      JOIN collection_products cp ON p.id = cp.productId
+      WHERE cp.collectionId = ?
+    `;
+    const rows = (await query({
+      query: selectQuery,
+      values: [collectionId],
+    })) as RowDataPacket[];
+
+    // Parse media and other JSON fields
+    return rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      media: JSON.parse(row.media || "[]"),
+      category: JSON.parse(row.category || "[]"),
+      tags: JSON.parse(row.tags || "[]"),
+      sizes: JSON.parse(row.sizes || "[]"),
+      colors: JSON.parse(row.colors || "[]"),
+      collections: JSON.parse(row.collections || "[]"),
+      price: row.price,
+      expense: row.expense || 0,
+      createdAt: row.createdAt ? new Date(row.createdAt) : undefined,
+      updatedAt: row.updatedAt ? new Date(row.updatedAt) : undefined,
+    }));
+  } catch (error) {
+    console.error("Error fetching products for collection:", error);
+    throw error;
+  }
+};
+
+//special delimeter function add products to collection by name
+export const getCollectionProductsByName = async (
+  collectionName: string
+): Promise<ProductAttributes[] | null> => {
+  const selectQuery = `
+    SELECT p.* 
+    FROM products p
+    JOIN collection_products cp ON p.id = cp.productId
+    JOIN collections c ON cp.collectionId = c.id
+    WHERE c.title = ?
+  `;
+
+  try {
+    const rows = await query({ query: selectQuery, values: [collectionName] });
+
+    const products = rows as RowDataPacket[];
+
+    if (products.length === 0) return null;
+
+    return products.map((row) => ({
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      media: parseJsonSafe(row.media),
+      category: parseJsonSafe(row.category),
+      tags: parseJsonSafe(row.tags),
+      sizes: parseJsonSafe(row.sizes),
+      colors: parseJsonSafe(row.colors),
+      price: row.price,
+      expense: row.expense || 0,
+      collections: parseJsonSafe(row.collections),
+      createdAt: row.createdAt ? new Date(row.createdAt) : undefined,
+      updatedAt: row.updatedAt ? new Date(row.updatedAt) : undefined,
+    }));
+  } catch (error) {
+    console.error(
+      `Error fetching products for collection '${collectionName}':`,
+      error
+    );
+    throw error; // Rethrow the error after logging it
+  }
+};
+// Fetch the collection ID by its title
+export const getCollectionIdByTitle = async (
+  collectionTitle: string
+): Promise<number | null> => {
+  const selectQuery = `SELECT id FROM collections WHERE title = ?`;
+  try {
+    const rows = (await query({
+      query: selectQuery,
+      values: [collectionTitle],
+    })) as RowDataPacket[];
+
+    // Ensure rows is an array of RowDataPacket and return the id if found
+    return rows.length > 0 ? rows[0].id : null;
+  } catch (error) {
+    console.error("Error fetching collection ID by title:", error);
+    throw error;
+  }
+};
+
+export const getCollectionProductsById = async (
+  collectionId: number
+): Promise<ProductAttributes[] | null> => {
+  const selectQuery = `
+    SELECT p.* 
+    FROM products p
+    JOIN collection_products cp ON p.id = cp.productId
+    JOIN collections c ON cp.collectionId = c.id
+    WHERE c.id = ?
+  `;
+
+  try {
+    const rows = await query({ query: selectQuery, values: [collectionId] });
+
+    const products = rows as RowDataPacket[];
+
+    if (products.length === 0) return null;
+
+    return products.map((row) => ({
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      media: parseJsonSafe(row.media),
+      category: parseJsonSafe(row.category),
+      tags: parseJsonSafe(row.tags),
+      sizes: parseJsonSafe(row.sizes),
+      colors: parseJsonSafe(row.colors),
+      price: row.price,
+      expense: row.expense || 0,
+      collections: parseJsonSafe(row.collections),
+      createdAt: row.createdAt ? new Date(row.createdAt) : undefined,
+      updatedAt: row.updatedAt ? new Date(row.updatedAt) : undefined,
+    }));
+  } catch (error) {
+    console.error(
+      `Error fetching products for collection with ID '${collectionId}':`,
+      error
+    );
+    throw error;
+  }
+};
+
+// Fetch related products based on a given product ID and criteria
+export const fetchRelatedProducts = async (
   productId: number
 ): Promise<ProductAttributes[]> => {
   try {
@@ -310,26 +497,66 @@ export const getRelatedProducts = async (
     const rows = (await query({
       query: selectQuery,
       values: [productId, productId],
-    })) as RowDataPacket[];
+    })) as ProductAttributes[];
 
     // Ensure all fields are mapped to ProductAttributes
-    return rows.map((row) => ({
-      id: row.id,
-      title: row.title,
-      description: row.description,
-      media: JSON.parse(row.media),
-      category: row.category,
-      tags: JSON.parse(row.tags),
-      sizes: JSON.parse(row.sizes),
-      colors: JSON.parse(row.colors),
-      collections: JSON.parse(row.collections),
-      price: row.price,
-      expense: row.expense || 0,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
-    }));
+    return rows as ProductAttributes[];
   } catch (error) {
     console.error("Error fetching related products:", error);
+    throw error;
+  }
+};
+
+// Fetch all products in a user's wishlist
+export const getUserWishlistProducts = async (
+  userId: number
+): Promise<ProductAttributes[]> => {
+  try {
+    // Step 1: Get the wishlist (JSON array) for the user
+    const wishlistQuery = `
+      SELECT JSON_EXTRACT(wishlist, '$') AS wishlist
+      FROM users
+      WHERE id = ?
+    `;
+
+    const wishlistResult = (await query({
+      query: wishlistQuery,
+      values: [userId], // Pass the userId to fetch the correct user data
+    })) as RowDataPacket[];
+
+    console.log("Wishlist query result:", wishlistResult);
+
+    const wishlist = wishlistResult[0]?.wishlist
+      ? JSON.parse(wishlistResult[0].wishlist)
+      : [];
+
+    console.log("Parsed wishlist:", wishlist);
+
+    if (!wishlist.length) {
+      return []; // Return an empty array if the wishlist is empty
+    }
+
+    // Step 2: Fetch products matching the IDs in the wishlist
+    const productsQuery = `
+      SELECT *
+      FROM products
+      WHERE id IN (?)
+    `;
+
+    console.log("Fetching products for wishlist IDs:", wishlist);
+
+    // Pass the wishlist array as a separate parameter for IN clause
+    const rows = (await query({
+      query: productsQuery,
+      values: [wishlist],
+    })) as ProductAttributes[];
+
+    console.log("Product rows fetched:", rows);
+
+    // Map rows to ProductAttributes and return
+    return rows;
+  } catch (error) {
+    console.error("Error fetching wishlist products for user:", error);
     throw error;
   }
 };

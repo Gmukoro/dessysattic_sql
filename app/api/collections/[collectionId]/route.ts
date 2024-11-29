@@ -6,7 +6,7 @@ import Collection, {
   deleteCollection,
   getProductsInCollection,
 } from "@/lib/models/Collection";
-import Product, { getProductsByCollectionId } from "@/lib/models/Product";
+// import Product, { getProductsByCollectionId } from "@/lib/models/Product";
 
 // Utility to validate session
 const validateSession = async () => {

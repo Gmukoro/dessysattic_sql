@@ -15,23 +15,29 @@ const Gallery = ({ productMedia }: { productMedia?: string[] }) => {
         src={mainImage}
         width={500}
         height={500}
-        alt="product"
+        alt="Main product image"
         className="w-96 h-96 rounded-lg shadow-xl object-cover"
       />
+
       <div className="flex gap-2 overflow-auto tailwind-scrollbar-hide">
-        {productMedia?.map((image, index) => (
-          <Image
-            key={index}
-            src={image}
-            height={200}
-            width={200}
-            alt="product"
-            className={`w-20 h-20 rounded-lg object-cover cursor-pointer ${
-              mainImage === image ? "border-2 border-black" : ""
-            }`}
-            onClick={() => setMainImage(image)}
-          />
-        )) || <p>No images available.</p>}
+        {Array.isArray(productMedia) && productMedia.length > 0 ? (
+          productMedia.map((image, index) => (
+            <Image
+              key={index}
+              src={image}
+              height={200}
+              width={200}
+              alt={`Product image ${index + 1}`}
+              className={`w-20 h-20 rounded-lg object-cover cursor-pointer ${
+                mainImage === image ? "border-2 border-black" : ""
+              }`}
+              onClick={() => setMainImage(image)}
+              loading="lazy"
+            />
+          ))
+        ) : (
+          <p>No images available.</p>
+        )}
       </div>
     </div>
   );

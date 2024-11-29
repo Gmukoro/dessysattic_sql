@@ -10,8 +10,8 @@ interface Props {}
 
 const ForgetPassword: FC<Props> = () => {
   const [state, action] = useFormState(generatePassResetLink, {
-    message: "",
     error: "",
+    message: "",
   });
 
   return (

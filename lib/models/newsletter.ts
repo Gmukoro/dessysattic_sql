@@ -6,23 +6,6 @@ interface NewsletterAttributes {
   date: Date;
 }
 
-// Initialize the Newsletter table if it doesn't exist
-export const initializeNewsletterTable = async () => {
-  try {
-    const createTableQuery = `
-      CREATE TABLE IF NOT EXISTS newsletters (
-        email VARCHAR(255) NOT NULL UNIQUE,
-        date DATETIME DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (email)
-      );
-    `;
-    await query({ query: createTableQuery });
-    console.log("Newsletter table initialized successfully.");
-  } catch (error) {
-    console.error("Error initializing the Newsletter table:", error);
-  }
-};
-
 // Add an email to the Newsletter list
 export const addEmailToNewsletter = async (email: string) => {
   const insertQuery = `
@@ -81,7 +64,6 @@ export const removeEmailFromNewsletter = async (email: string) => {
 };
 
 export default {
-  initializeNewsletterTable,
   addEmailToNewsletter,
   getAllNewsletterEmails,
   removeEmailFromNewsletter,

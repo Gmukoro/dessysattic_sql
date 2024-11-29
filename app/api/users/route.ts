@@ -1,7 +1,7 @@
 // app/api/users/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { getUserById } from "@/lib/models/user"; // Adjust path if necessary
-import { auth } from "@/auth"; // Adjust path if necessary
+import { getUserById } from "@/lib/models/user";
+import { auth } from "@/auth";
 
 export async function GET(req: NextRequest) {
   try {
@@ -11,14 +11,12 @@ export async function GET(req: NextRequest) {
     }
 
     const user = await getUserById(session.user.id);
-    console.log(session.user.id)
+    console.log(session.user.id);
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     return NextResponse.json({ wishlist: user.wishlist }, { status: 200 });
-    console.log( user.wishlist)
-
   } catch (error) {
     console.error("Error fetching user data:", error);
     return NextResponse.json(

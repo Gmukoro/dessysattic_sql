@@ -4,7 +4,7 @@ import { query } from "@/lib/database";
 
 // Define interfaces for the Order model
 export interface OrderAttributes {
-  _id: string;
+  _id?: string;
   products: Array<{
     product: {
       id: string;
@@ -23,7 +23,7 @@ export interface OrderAttributes {
     postalCode: string;
     country: string;
   };
-  shippingRate: string;
+  shippingRate: number | string;
   totalAmount: number;
   createdAt: Date;
   updatedAt: Date;
@@ -34,40 +34,16 @@ interface TotalSalesResult {
   totalOrders: number;
 }
 
-// Initialize the Orders table if it doesn’t exist
-export const initializeOrderTable = async () => {
-  try {
-    const createTableQuery = `
-      CREATE TABLE IF NOT EXISTS orders (
-        _id VARCHAR(255) PRIMARY KEY,
-        products JSON NOT NULL,
-        shippingAddress JSON NOT NULL,
-        shippingRate VARCHAR(100) NOT NULL,
-        totalAmount FLOAT NOT NULL,
-        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        customerId VARCHAR(255) NOT NULL,
-        FOREIGN KEY (customerId) REFERENCES customers(_id)
-      );
-    `;
-    await query({ query: createTableQuery });
-    console.log("Orders table initialized successfully.");
-  } catch (error) {
-    console.error("Error initializing Orders table:", error);
-  }
-};
-
 // Insert a new order
 export const createOrder = async (order: OrderAttributes) => {
   const insertQuery = `
-    INSERT INTO orders (id, products, shippingAddress, shippingRate, totalAmount, createdAt, updatedAt, customerId)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO orders (products, shippingAddress, shippingRate, totalAmount, createdAt, updatedAt, customerId)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `;
   try {
     const result = await query({
       query: insertQuery,
       values: [
-        order._id,
         JSON.stringify(order.products),
         JSON.stringify(order.shippingAddress),
         order.shippingRate,
@@ -86,14 +62,13 @@ export const createOrder = async (order: OrderAttributes) => {
 
 // Retrieve an order by ID
 export const getOrderById = async (
-  id: string
+  id: number // Change to number type
 ): Promise<OrderAttributes | null> => {
-  const selectQuery = `SELECT * FROM orders WHERE id = ?`;
+  const selectQuery = `SELECT * FROM orders WHERE _id = ?`;
   try {
-    const rows = await query({ query: selectQuery, values: [_id] });
+    const rows = await query({ query: selectQuery, values: [id] });
     if (Array.isArray(rows) && rows.length > 0) {
       const order = rows[0] as OrderAttributes;
-      // Parse JSON columns for products and shippingAddress
       order.products = JSON.parse(order.products as any);
       order.shippingAddress = JSON.parse(order.shippingAddress as any);
       return order;
@@ -107,22 +82,21 @@ export const getOrderById = async (
 
 // Retrieve all orders for a specific customer
 export const getOrders = async (
-  customerId: string
-): Promise<OrderAttributes[]> => {
+  customerId: string // Change to string type to match the customerId type
+): Promise<OrderType[]> => {
   const selectQuery = `SELECT * FROM orders WHERE customerId = ?`;
   try {
     const rows = await query({ query: selectQuery, values: [customerId] });
 
-    // Ensure rows are an array before proceeding
     if (Array.isArray(rows)) {
       return rows.map((row) => {
-        const order = row as {
+        const order = row as OrderAttributes & {
           products: string;
           shippingAddress: string;
-        } & OrderAttributes;
+        };
         order.products = JSON.parse(order.products);
         order.shippingAddress = JSON.parse(order.shippingAddress);
-        return order;
+        return order as unknown as OrderType;
       });
     }
     return [];
@@ -134,7 +108,7 @@ export const getOrders = async (
 
 // Update an order
 export const updateOrder = async (
-  id: string,
+  id: number, // Change to number type
   updateData: Partial<OrderAttributes>
 ) => {
   const updateQuery = `
@@ -152,7 +126,7 @@ export const updateOrder = async (
         updateData.totalAmount,
         new Date(),
         updateData.customerId,
-        id,
+        id, // Use numeric ID here
       ],
     });
     return result;
@@ -163,7 +137,7 @@ export const updateOrder = async (
 };
 
 // Delete an order by ID
-export const deleteOrder = async (id: string) => {
+export const deleteOrder = async (id: number) => {
   const deleteQuery = `DELETE FROM orders WHERE _id = ?`;
   try {
     const result = await query({ query: deleteQuery, values: [id] });
@@ -192,13 +166,12 @@ export const getOrdersWithCustomerDetails = async (): Promise<
       orders.updatedAt, 
       customers.name AS customerName 
     FROM orders
-    JOIN customers ON orders.customerId = customers.id
+    JOIN customers ON orders.customerId = customers._id
   `;
 
   try {
     const rows = await query({ query: selectQuery });
 
-    // Ensure rows are an array before proceeding
     if (Array.isArray(rows)) {
       return rows.map((row) => {
         const order = row as {
@@ -218,7 +191,6 @@ export const getOrdersWithCustomerDetails = async (): Promise<
 };
 
 export default {
-  initializeOrderTable,
   createOrder,
   getOrderById,
   getOrders,

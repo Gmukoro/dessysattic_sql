@@ -18,18 +18,15 @@ const HeartFavorite = ({ product, updateSignedInUser }: HeartFavoriteProps) => {
   const [loading, setLoading] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
 
-  // Format the user data (this can be extracted into a utility function as well)
-  const formatUser = (user: any): UserType => ({
-    ...user,
-    avatar: JSON.parse(user.avatar || "{}"),
-    wishlist: user.wishlist ? JSON.parse(user.wishlist) : [],
-  });
-
+  // Ensure the user is fetched correctly and format wishlist
   const getUser = async () => {
+    if (!session || !session.user) return;
+
     try {
       setLoading(true);
       const res = await fetch("/api/users");
       if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`);
+
       const data = await res.json();
 
       if (data && Array.isArray(data.wishlist)) {
@@ -44,51 +41,48 @@ const HeartFavorite = ({ product, updateSignedInUser }: HeartFavoriteProps) => {
       setLoading(false);
     }
   };
-
   useEffect(() => {
-    if (session) {
-      getUser();
-    }
+    getUser();
   }, [session]);
 
-  const handleLike = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
+  // Handle adding/removing product from wishlist
+  const handleWishlistClick = async () => {
+    if (!session?.user?.id) {
+      router.push("/sign-in");
+      return;
+    }
+
+    setLoading(true);
+
     try {
-      if (!session) {
-        router.push("/sign-in");
-        return;
-      }
       const res = await fetch("/api/wishlist", {
         method: "POST",
         body: JSON.stringify({ productId: product.id }),
+        headers: { "Content-Type": "application/json" },
       });
 
-      if (!res.ok) {
-        const errorMessage = await res.text();
-        throw new Error(`Error ${res.status}: ${errorMessage}`);
+      const data = await res.json();
+      if (data.wishlist) {
+        setIsLiked(!isLiked);
+        if (updateSignedInUser) {
+          updateSignedInUser(data);
+        }
       }
-
-      const updatedUser = await res.json();
-      setIsLiked(updatedUser.wishlist.includes(product.id));
-      updateSignedInUser && updateSignedInUser(updatedUser);
     } catch (err) {
-      console.error("Error updating wishlist:", err);
+      console.error("[wishlist_UPDATE]", err);
+    } finally {
+      setLoading(false);
     }
   };
 
+  // if (loading) return <Loader />;
+
   return (
-    <button
-      onClick={handleLike}
-      disabled={loading}
-      aria-label={isLiked ? "Remove from wishlist" : "Add to wishlist"}
-    >
-      <Heart fill={isLiked ? "red" : "white"} />
-      {/* {loading && (
-        <span className="h-6 w-6">
-          <Loader />
-        </span>
-      )} */}
-    </button>
+    <div onClick={handleWishlistClick} className="cursor-pointer">
+      <Heart
+        className={`text-lg ${isLiked ? "text-red-500" : "text-gray-400"}`}
+      />
+    </div>
   );
 };
 

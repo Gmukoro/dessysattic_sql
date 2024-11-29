@@ -14,7 +14,7 @@ export const GET = async (req: NextRequest) => {
     }
 
     const orderDetails = ordersResult.map((order) => ({
-      id: order.id,
+      id: order._id,
       customer: order.customerName,
       products: order.products.length,
       totalAmount: order.totalAmount,

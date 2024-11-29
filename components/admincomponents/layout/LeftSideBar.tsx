@@ -21,9 +21,18 @@ const LeftSideBar: FC<NavBarProps> = ({ pathname }) => {
 
   return (
     <div className="h-screen left-0 top-0 sticky p-10 flex flex-col gap-16 bg-gray-400 shadow-xl max-lg:hidden">
-      {/* <link href="/"> */}
-      <Image src="/logo.png" alt="logo" width={150} height={70} />
-      {/* </link> */}
+      <Link href="/" className="relative group">
+        <Image
+          src="/logo.png"
+          alt="logo"
+          width={150}
+          height={70}
+          className="transition-transform duration-300 ease-in-out group-hover:scale-110"
+        />
+        <span className="absolute left-1/2 transform -translate-x-1/2 top-full mt-2 text-sm text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          Home
+        </span>
+      </Link>
 
       <div className="flex flex-col gap-12">
         {navLinks.map((link) =>

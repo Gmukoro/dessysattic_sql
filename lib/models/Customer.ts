@@ -7,29 +7,10 @@ export interface CustomerAttributes {
   userId: string;
   name: string;
   email: string;
+  orders: OrderType[];
   createdAt: Date;
   updatedAt: Date;
 }
-
-// Initialize the Customer table if it doesn't exist
-export const initializeCustomer = async () => {
-  try {
-    const createTableQuery = `
-      CREATE TABLE IF NOT EXISTS customers (
-        id VARCHAR(255) PRIMARY KEY,
-        userId VARCHAR(255) NOT NULL UNIQUE,
-        name VARCHAR(255) NOT NULL,
-        email VARCHAR(255) NOT NULL UNIQUE,
-        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      );
-    `;
-    await query({ query: createTableQuery });
-    console.log("Customer table initialized successfully.");
-  } catch (error) {
-    console.error("Error initializing the Customer table:", error);
-  }
-};
 
 // CRUD operations for the Customer model
 
@@ -74,7 +55,7 @@ export const getCustomerById = async (id: string) => {
 };
 
 // Fetch all customers
-export const getAllCustomers = async () => {
+export const getAllCustomers = async (p0: { order: string[][] }) => {
   const selectQuery = `SELECT * FROM customers`;
   try {
     const result = await query({ query: selectQuery });

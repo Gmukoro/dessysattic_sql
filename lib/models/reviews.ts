@@ -13,30 +13,6 @@ interface ReviewAttributes {
   updatedAt?: Date;
 }
 
-// Initialize the Reviews table
-export const initializeReviewTable = async () => {
-  const createTableQuery = `
-    CREATE TABLE IF NOT EXISTS reviews (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      name VARCHAR(255) NOT NULL,
-      content TEXT NOT NULL,
-      rating INT NOT NULL CHECK (rating BETWEEN 1 AND 5),
-      email VARCHAR(255) NOT NULL,
-      productId VARCHAR(255) NOT NULL,
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      UNIQUE (email, productId)  -- Unique constraint on email and productId combination
-    );
-  `;
-  try {
-    await query({ query: createTableQuery });
-    console.log("Review table initialized successfully.");
-  } catch (error) {
-    console.error("Error initializing Review table:", error);
-    throw new Error("Error initializing Review table.");
-  }
-};
-
 // Create a new review
 export const createReview = async (data: ReviewAttributes) => {
   const checkUniqueQuery = `
@@ -49,20 +25,18 @@ export const createReview = async (data: ReviewAttributes) => {
   `;
 
   try {
-    // Ensure the query result is an array of rows
     const existingReview = (await query({
       query: checkUniqueQuery,
       values: [data.email, data.productId],
     })) as RowDataPacket[];
 
-    // Check if the review already exists
     if (existingReview.length > 0) {
       throw new Error(
         "A review for this product by this email already exists."
       );
     }
 
-    // Insert the new review
+    // Directly use the content as a string (no need to JSON.stringify it)
     const result = await query({
       query: insertQuery,
       values: [
@@ -85,13 +59,14 @@ export const createReview = async (data: ReviewAttributes) => {
 };
 
 // Retrieve all reviews for a specific product
-export const getReviewsByProductId = async (productId: string) => {
+
+export const getReviewsByProductId = async (productId: number) => {
   const selectQuery = `
     SELECT * FROM reviews WHERE productId = ? ORDER BY createdAt DESC
   `;
   try {
-    const rows = await query({ query: selectQuery, values: [productId] });
-    return rows as ReviewAttributes[];
+    const result = await query({ query: selectQuery, values: [productId] });
+    return result as ReviewAttributes[];
   } catch (error) {
     console.error(
       `Error retrieving reviews for productId: ${productId}`,
@@ -166,7 +141,6 @@ export const deleteReview = async (id: number) => {
 
 // Export all functions
 export default {
-  initializeReviewTable,
   createReview,
   getReviewsByProductId,
   getAllReviews,

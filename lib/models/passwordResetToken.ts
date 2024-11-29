@@ -10,25 +10,6 @@ interface PasswordResetTokenAttributes {
   expires: Date;
 }
 
-// Initialize the Password Reset Tokens table
-export const initializePasswordResetTokenTable = async () => {
-  const createTableQuery = `
-    CREATE TABLE IF NOT EXISTS password_reset_tokens (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      token VARCHAR(255) NOT NULL,
-      userId VARCHAR(255) NOT NULL,
-      expires DATETIME DEFAULT CURRENT_TIMESTAMP,
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-  `;
-  try {
-    await query({ query: createTableQuery });
-    console.log("PasswordResetToken table initialized successfully.");
-  } catch (error) {
-    console.error("Error initializing PasswordResetToken table:", error);
-  }
-};
-
 // Create a password reset token
 export const createPasswordResetToken = async (
   data: PasswordResetTokenAttributes
@@ -130,7 +111,6 @@ cron.schedule("0 * * * *", () => {
 
 // Export all functions
 export default {
-  initializePasswordResetTokenTable,
   createPasswordResetToken,
   comparePasswordResetToken,
   deleteExpiredTokens,

@@ -1,3 +1,5 @@
+//app\api\productReviews\[poductId]\route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import { getReviewsByEmail, getReviewsByProductId } from "@/lib/models/reviews";
 import reviewModel from "@/lib/models/reviews";
@@ -15,20 +17,33 @@ const corsHeaders = {
 export const OPTIONS = async () =>
   new NextResponse(null, { status: 204, headers: corsHeaders });
 
-// GET: Retrieve reviews for a product
-export const GET = async (req: NextRequest) => {
-  try {
-    const productId = req.nextUrl.searchParams.get("productId");
+export async function GET(
+  req: Request,
+  { params }: { params: { productId: string } }
+) {
+  const { productId } = params;
+  console.log("Received productId:", productId); // Debugging output
 
-    if (!productId) throw new Error("Product ID is required");
-
-    const reviews = await getReviewsByProductId(productId);
-    return new NextResponse(JSON.stringify(reviews), { status: 200 });
-  } catch (error) {
-    console.error("[GET Review Error]", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+  if (!productId) {
+    console.log("Product ID is missing or invalid");
+    return new NextResponse("Invalid productId", { status: 400 });
   }
-};
+
+  const numericProductId = Number(productId);
+  if (isNaN(numericProductId)) {
+    console.log("Invalid productId:", productId);
+    return new NextResponse("Invalid productId", { status: 400 });
+  }
+
+  // Proceed with fetching reviews using numericProductId
+  try {
+    const reviews = await getReviewsByProductId(numericProductId);
+    return NextResponse.json(reviews);
+  } catch (error) {
+    console.error("Error fetching reviews:", error);
+    return new NextResponse("Error fetching reviews", { status: 500 });
+  }
+}
 
 // POST: Create a new review
 export const POST = async (req: NextRequest) => {
@@ -48,6 +63,17 @@ export const POST = async (req: NextRequest) => {
 
     // Check if the user has already reviewed the product
     const existingReviews = await getReviewsByEmail(email);
+
+    if (existingReviews && Array.isArray(existingReviews)) {
+      const hasReviewed = existingReviews.some(
+        (review) => review.productId === productId
+      );
+      if (hasReviewed) {
+        return new NextResponse("You have already reviewed this product", {
+          status: 400,
+        });
+      }
+    }
 
     // Ensure `existingReviews` is an array
     if (Array.isArray(existingReviews)) {

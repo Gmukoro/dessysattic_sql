@@ -32,11 +32,12 @@ const Profile: FC = () => {
     id?: string;
     name?: string;
     email?: string;
+    role?: string;
     avatar?: string;
     verified?: boolean;
   };
 
-  const { id, name, email, avatar, verified = false } = user || {};
+  const { id, name, email, role, avatar, verified = false } = user || {};
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: "/" });
@@ -69,7 +70,11 @@ const Profile: FC = () => {
             <strong className="text-amber-800">Email:</strong> {email || "N/A"}
           </p>
           <p>
-            <strong className="text-amber-800">Verified:</strong>{" "}
+            <strong className="text-amber-800">Role:</strong>
+            {session?.user.role || "No role assigned"}
+          </p>
+          <p>
+            <strong className="text-amber-800">Verified:</strong>
             {verified ? "Yes" : "No"}
           </p>
         </div>

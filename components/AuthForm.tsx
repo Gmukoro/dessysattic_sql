@@ -11,6 +11,7 @@ interface Props {
   children: ReactNode;
   footerItems?: { label: string; linkText: string; link: string }[];
   className?: string;
+  redirectTo?: string; // Add redirectTo as a prop
 }
 
 const AuthForm: FC<Props> = ({
@@ -22,6 +23,7 @@ const AuthForm: FC<Props> = ({
   action,
   message,
   className,
+  redirectTo,
 }) => {
   return (
     <div className={`space-y-6 max-w-96 mx-auto pt-20 sm:p-0 p-4 ${className}`}>
@@ -32,6 +34,12 @@ const AuthForm: FC<Props> = ({
         {error && <p className="text-red-500">{error}</p>}
 
         {children}
+
+        {/* Hidden redirectTo input */}
+        {redirectTo && (
+          <input type="hidden" name="redirectTo" value={redirectTo} />
+        )}
+
         <AuthSubmitButton label={btnLabel} />
       </form>
       <div className="relative h-3 bg-white">

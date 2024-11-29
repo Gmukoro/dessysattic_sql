@@ -20,26 +20,6 @@ interface Methods {
   compareToken(token: string): boolean;
 }
 
-// Initialize the VerificationTokens table
-export const initializeVerificationTokenTable = async () => {
-  const createTableQuery = `
-    CREATE TABLE IF NOT EXISTS verification_tokens (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      token VARCHAR(255) NOT NULL,
-      userId VARCHAR(255) NOT NULL,
-      expires DATETIME DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE (userId)
-    );
-  `;
-
-  try {
-    await query({ query: createTableQuery });
-    console.log("Verification Token table initialized successfully.");
-  } catch (error) {
-    console.error("Error initializing Verification Token table:", error);
-  }
-};
-
 // Create a new verification token
 // Create a new verification token with dynamic expiry
 export const createVerificationToken = async (
@@ -122,7 +102,6 @@ export const compareToken = (
 
 // Export all functions
 export default {
-  initializeVerificationTokenTable,
   createVerificationToken,
   getTokenByUserId,
   cleanupExpiredTokens,

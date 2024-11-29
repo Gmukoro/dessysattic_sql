@@ -66,12 +66,15 @@ export const useCurrency = () => {
         currencyRates[to]?.value / currencyRates[from]?.value;
       const convertedPrice = price * conversionRate;
 
-      // Store the converted price in the ref
-      convertedPricesRef.current[priceKey] = convertedPrice;
+      // Round to two decimal places
+      const roundedPrice = Math.round(convertedPrice * 100) / 100;
 
-      // Update converted prices state after the conversion
+      // Store the converted price in the ref (doesn't trigger re-renders)
+      convertedPricesRef.current[priceKey] = roundedPrice;
+
+      // UseEffect to update state after render to avoid render cycle issues
       setConvertedPrices((prev) => {
-        const updatedPrices = { ...prev, [priceKey]: convertedPrice };
+        const updatedPrices = { ...prev, [priceKey]: roundedPrice };
 
         // Save to localStorage after conversion
         localStorage.setItem("convertedPrices", JSON.stringify(updatedPrices));
@@ -80,10 +83,23 @@ export const useCurrency = () => {
         return updatedPrices;
       });
 
-      return convertedPrice;
+      return roundedPrice;
     },
     [currencyRates]
   );
+
+  // Defer state updates after render to avoid the warning
+  useEffect(() => {
+    if (Object.keys(convertedPricesRef.current).length > 0) {
+      const updatedPrices = {
+        ...convertedPrices,
+        ...convertedPricesRef.current,
+      };
+      setConvertedPrices(updatedPrices);
+      localStorage.setItem("convertedPrices", JSON.stringify(updatedPrices));
+      localStorage.setItem("conversionTime", Date.now().toString());
+    }
+  }, [currencyRates]);
 
   return {
     currencyRates,

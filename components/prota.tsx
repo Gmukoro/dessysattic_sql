@@ -34,8 +34,8 @@ const Prota = async () => {
   }
 
   return (
-    <div className="px-10 py-5 flex flex-col gap-8">
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+    <div className="lg:p-6 sm:px-3 md:px-6 py-6 flex flex-col gap-6">
+      <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 sm:gap-4 md:gap-6 lg:gap-8">
         {protaCollection.map((product) => (
           <div
             key={product.id}

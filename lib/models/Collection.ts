@@ -15,27 +15,6 @@ export interface CollectionAttributes {
 // Define the PRODUCTS_TABLE constant
 const PRODUCTS_TABLE = "products";
 
-// Initialize the Collection table if it doesn't exist
-export const initializeCollection = async () => {
-  const createTableQuery = `
-    CREATE TABLE IF NOT EXISTS collections (
-      id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,               -- Auto-increment ID for collection
-      title VARCHAR(255) NOT NULL UNIQUE,                        -- Title must be unique
-      description TEXT,                                          -- Optional description
-      image VARCHAR(255) NOT NULL,                               -- Image URL
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,              -- Timestamp for creation
-      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, -- Auto update on modification
-      FOREIGN KEY (id) REFERENCES products(collection_id)      -- Foreign key relationship to the products table
-    );
-  `;
-  try {
-    await query({ query: createTableQuery });
-    console.log("Collection table initialized successfully.");
-  } catch (error) {
-    console.error("Error initializing the Collection table:", error);
-  }
-};
-
 // Create a new collection
 export const createCollection = async (
   collectionData: Omit<CollectionAttributes, "createdAt" | "updatedAt" | "id">
@@ -190,12 +169,36 @@ export const getProductsInCollection = async (collectionId: number) => {
   }
 };
 
+// Function to fetch all products from the "New Arrivals" collection
+export const getNewArrivalsProducts = async (): Promise<
+  ProductAttributes[]
+> => {
+  const selectQuery = `
+    SELECT * 
+    FROM ${PRODUCTS_TABLE}
+    WHERE JSON_CONTAINS(collections, '"New Arrivals"')
+  `;
+
+  try {
+    // Execute the query
+    const products = await query({
+      query: selectQuery,
+    });
+
+    // Return the products as an array of ProductAttributes
+    return products as ProductAttributes[];
+  } catch (error) {
+    console.error("Error fetching new arrivals products:", error);
+    throw new Error("Failed to fetch new arrivals products.");
+  }
+};
+
 export default {
-  initializeCollection,
   createCollection,
   getAllCollections,
   getCollectionById,
   updateCollection,
   deleteCollection,
   getProductsInCollection,
+  getNewArrivalsProducts,
 };

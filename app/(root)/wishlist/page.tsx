@@ -1,10 +1,12 @@
-//app\(root)\wishlist\page.tsx
-
 "use client";
 
 import Loader from "@/components/Loader";
 import ProductCard from "@/components/ProductCard";
-import { getProductById } from "@/lib/models/Product";
+import {
+  fetchProductById,
+  getUserWishlistProducts,
+  ProductAttributes,
+} from "@/lib/models/Product";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 
@@ -15,6 +17,7 @@ const Wishlist = () => {
   const [wishlist, setWishlist] = useState<ProductType[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch user data
   const getUser = async () => {
     try {
       const res = await fetch("/api/users");
@@ -38,6 +41,7 @@ const Wishlist = () => {
     }
   }, [session]);
 
+  // Fetch wishlist products when signedInUser is available
   const getWishlistProducts = async () => {
     setLoading(true);
 
@@ -46,19 +50,29 @@ const Wishlist = () => {
       return;
     }
 
-    const wishlistProducts = await Promise.all(
-      signedInUser.wishlist.map(async (productId: string) => {
-        const product = await getProductById(Number(productId));
-        return product;
-      })
-    );
+    try {
+      const wishlistProducts = await Promise.all(
+        signedInUser.wishlist.map(async (productId) => {
+          const res = await getUserWishlistProducts(parseInt(productId));
+          return res;
+        })
+      );
+    } catch (err) {
+      console.error("Error fetching wishlist products:", err);
+      setError("Failed to fetch wishlist products.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const validWishlistProducts = wishlistProducts.filter(
-      (product) => product !== null
-    );
+  useEffect(() => {
+    if (signedInUser) {
+      getWishlistProducts();
+    }
+  }, [signedInUser]);
 
-    setWishlist(validWishlistProducts as unknown as ProductType[]);
-    setLoading(false);
+  const updateSignedInUser = (updatedUser: BaseUserDoc) => {
+    setSignedInUser(updatedUser);
   };
 
   return (

@@ -240,9 +240,12 @@ const Navbar: FC = () => {
               ({cart.cartItems.length})
             </p>
           </Link>
-          <div className="hidden lg:flex hover:text-white items-center">
+          <div className="hidden lg:flex items-center">
             {user ? (
-              <Link href="/profile" className="flex gap-4  items-center group">
+              <Link
+                href="/profile"
+                className="flex gap-4 items-center group relative"
+              >
                 <Image
                   src={avatar}
                   alt={`${name}'s avatar`}
@@ -250,7 +253,8 @@ const Navbar: FC = () => {
                   height={30}
                   className="rounded-full"
                 />
-                <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-blue-1">
+                {/* Hover text below the avatar */}
+                <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 absolute top-full left-0 mt-2 text-blue-1">
                   {name}
                 </span>
               </Link>
@@ -310,5 +314,3 @@ export default Navbar;
 function setIsDropdownVisible(arg0: boolean): void {
   throw new Error("Function not implemented.");
 }
-
-

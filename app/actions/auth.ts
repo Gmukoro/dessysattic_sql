@@ -84,8 +84,6 @@ const signUpSchema = z.object({
 });
 
 export const signUp = async (state: AuthResponse, data: FormData) => {
-  console.log("SignUp action started");
-
   const result = signUpSchema.safeParse({
     name: data.get("name"),
     email: data.get("email"),
@@ -169,18 +167,19 @@ export const continueWithCredentials = async (
       return { success: false, error: "Incorrect password" };
     }
 
+    // Sign-in using NextAuth
     await signIn("credentials", {
       email,
       password,
       redirectTo: "/",
     });
-    return { success: true };
-    redirect("/");
 
     return { success: true };
   } catch (error) {
     let errorMsg = "";
     if (error instanceof Error && error.message === "NEXT_REDIRECT") {
+      redirect("/");
+      // Handle the redirect error
     } else if (error instanceof AuthError) {
       errorMsg = error.message;
     } else {
@@ -203,7 +202,7 @@ export const generateVerificationLink = async (
   const { email, id, name } = session.user;
 
   // Fetch user details from the database
-  const user = await getUserById(session.user.id);
+  const user = await getUserById(session?.user.id);
   if (!user) {
     return { success: false };
   }
@@ -274,13 +273,17 @@ export const updateProfileInfo = async (data: FormData) => {
 export const generatePassResetLink = async (
   state: { message?: string; error?: string },
   formData: FormData
-) => {
+): Promise<{ message: string; error?: string }> => {
   const email = formData.get("email");
-  if (typeof email !== "string") return { error: "Invalid email!" };
+  if (typeof email !== "string") {
+    return { error: "Invalid email!", message: "" }; // Added message
+  }
 
   const message = "If we found your profile, we sent you the link!";
   const user = await getUserByEmail(email);
-  if (!user) return { message };
+  if (!user) {
+    return { message }; // Already valid
+  }
 
   const token = crypto.randomBytes(36).toString("hex");
   await deleteByUserId(user.id || "");
@@ -331,12 +334,3 @@ export const updatePassword = async (
 
   return { success: true };
 };
-
-// Admin redirect
-// export const redirectAdmin = async () => {
-//   const session = await auth();
-//   if (!session) return redirect("/sign-in");
-
-//   if (adminEmails.includes(session.user.email)) return redirect("/admin");
-//   return redirect("/");
-// };

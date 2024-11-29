@@ -9,14 +9,14 @@ const Products: React.FC = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const parsePrice = (price: any): number => {
-    try {
-      const parsed = JSON.parse(price);
-      return parseFloat(parsed["$numberDecimal"]);
-    } catch {
-      return parseFloat(price);
-    }
-  };
+  // const parsePrice = (price: any): number => {
+  //   try {
+  //     const parsed = JSON.parse(price);
+  //     return parseFloat(parsed["$numberDecimal"]);
+  //   } catch {
+  //     return parseFloat(price);
+  //   }
+  // };
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -26,7 +26,7 @@ const Products: React.FC = () => {
         // Transform product prices
         const transformedData = data.map((product: any) => ({
           ...product,
-          price: parsePrice(product.price),
+          price: product.price,
         }));
 
         setProducts(transformedData);
@@ -64,7 +64,7 @@ const Products: React.FC = () => {
               {selectedCurrency === "CAD" && "CA$"}
               {selectedCurrency === "NGN" && "₦"}
               {selectedCurrency === "GBP" && "£"}
-              {convertPrice(product.price, "EUR", selectedCurrency).toFixed(2)}
+              {convertPrice(product.price, "EUR", selectedCurrency)}
             </p>
           </div>
         ))}

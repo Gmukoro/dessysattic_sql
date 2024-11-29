@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, use } from "react";
 import { getCollectionDetails } from "@/utils/dataFetchers";
 import Loader from "@/components/admincomponents/custom ui/Loader";
 import CollectionForm from "@/components/admincomponents/collections/CollectionForm";
@@ -9,17 +9,19 @@ import MainLayout from "@/components/admincomponents/MainLayout";
 const CollectionDetails = ({
   params,
 }: {
-  params: { collectionId: string };
+  params: Promise<{ collectionId: string }>;
 }) => {
+  const { collectionId } = use(params);
+
   const [loading, setLoading] = useState(true);
   const [collectionDetails, setCollectionDetails] =
     useState<CollectionType | null>(null);
 
   const fetchCollectionDetails = useCallback(async () => {
-    const data = await getCollectionDetails(params.collectionId);
+    const data = await getCollectionDetails(collectionId);
     setCollectionDetails(data);
     setLoading(false);
-  }, [params.collectionId]);
+  }, [collectionId]);
 
   useEffect(() => {
     fetchCollectionDetails();

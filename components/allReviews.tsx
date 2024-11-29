@@ -7,7 +7,7 @@ import { HiArrowLeft, HiArrowRight } from "react-icons/hi";
 import Loader from "./Loader";
 
 interface Review {
-  _id: string;
+  id: string;
   content: string;
   rating: number;
   name: string;
@@ -95,7 +95,7 @@ const ReviewsComponent = () => {
             }}
           >
             {reviews.map((review) => (
-              <SwiperSlide key={review._id} className="text-center">
+              <SwiperSlide key={review.id} className="text-center">
                 <div className="p-4 rounded-md shadow-sm bg-amber-700 text-white">
                   <p className="font-semibold text-amber-950">{review.name}</p>
                   <p className="text-gray-300">{review.content}</p>

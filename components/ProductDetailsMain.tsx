@@ -29,30 +29,14 @@ const ProductDetailsMain = ({
   };
 
   useEffect(() => {
-    const parsePrice = (price: any): number => {
-      try {
-        const parsed = JSON.parse(price);
-        return parseFloat(parsed["$numberDecimal"]);
-      } catch {
-        return parseFloat(price);
-      }
-    };
-
-    // Parse the product price once before any use
-    const parsedPrice = parsePrice(price);
-
-    if (parsedPrice) {
-      const newConvertedPrice = convertPrice(
-        parsedPrice,
-        "EUR",
-        selectedCurrency
-      ); // Use parsedPrice here
+    if (price) {
+      const newConvertedPrice = convertPrice(price, "EUR", selectedCurrency);
       const newCurrencySymbol = currencySymbols[selectedCurrency] || "";
 
       setConvertedPrice(newConvertedPrice);
       setCurrencySymbol(newCurrencySymbol);
     }
-  }, [selectedCurrency, price, convertPrice]); // Remove parsedPrice from dependency array, since it's a derived value
+  }, [selectedCurrency, price, convertPrice]);
 
   return (
     <div className="flex justify-center items-start gap-16 py-10 px-5 max-md:flex-col max-md:items-center">

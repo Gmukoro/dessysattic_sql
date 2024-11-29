@@ -18,16 +18,22 @@ export const POST = async (req: NextRequest) => {
 
     const { title, description, image } = await req.json();
 
-    if (!title || !image) {
-      return new NextResponse("Title and image are required", { status: 400 });
+    if (!title) {
+      console.log("title is required", { status: 400 });
+      return new NextResponse("Title is required", { status: 400 });
     }
 
-    // Check if collection already exists
-    const existingCollection = await getCollectionById(title);
-
-    if (existingCollection) {
-      return new NextResponse("Collection already exists", { status: 400 });
+    if (!image) {
+      console.log("image is required", { status: 400 });
+      return new NextResponse("image are required", { status: 400 });
     }
+
+    // // Check if collection already exists
+    // const existingCollection = await getCollectionById(title);
+
+    // if (existingCollection) {
+    //   return new NextResponse("Collection already exists", { status: 400 });
+    // }
 
     // Create the collection using the model
     const result = await createCollection({

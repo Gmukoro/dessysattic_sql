@@ -31,7 +31,7 @@ const CollectionDetails = ({ params }: { params: Params }) => {
   useEffect(() => {
     const fetchCollectionDetails = async () => {
       if (!collectionId) return;
-      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/collections/${collectionId}`;
+      const apiUrl = `api/collections/${collectionId}`;
       try {
         const res = await fetch(apiUrl, { cache: "no-store" });
         if (!res.ok) {

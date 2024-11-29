@@ -8,7 +8,7 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 interface Review {
-  _id: string;
+  id: string;
   content: string;
   rating: number;
   title: string;
@@ -38,9 +38,29 @@ const Reviews: React.FC<ReviewsProps> = ({ productId }) => {
 
   useEffect(() => {
     const fetchReviews = async () => {
+      const apiUrl = `/api/products/productReviews/${productId}`;
+      console.log("API URL:", apiUrl);
       try {
-        const data = await getReviewsByProductId(productId);
-        setReviews(data as Review[]);
+        const data = await fetch(apiUrl, { cache: "no-store" });
+
+        if (!data.ok) {
+          throw new Error(`Failed to fetch product reviews: ${data.status}`);
+        }
+        const reviews = await data.json();
+        console.log(reviews);
+
+        // Parse content field if it's a stringified JSON
+        const parsedReviews = reviews.map((review: any) => {
+          const parsedContent = review.content
+            ? JSON.parse(review.content)
+            : null;
+          return {
+            ...review,
+            content: parsedContent?.text || review.content,
+          };
+        });
+
+        setReviews(parsedReviews);
       } catch (err) {
         toast.error("Failed to fetch reviews. Please try again later.");
       } finally {
@@ -68,10 +88,14 @@ const Reviews: React.FC<ReviewsProps> = ({ productId }) => {
         rating: formRating,
         productId,
       };
-
-      const response = await axios.post(`/api/review`, newReview, {
-        headers: { "Content-Type": "application/json" },
-      });
+      //app\api\products\productReviews\[productId]\route.ts
+      const response = await axios.post(
+        `/api/products/productReviews/${productId}`,
+        newReview,
+        {
+          headers: { "Content-Type": "application/json" },
+        }
+      );
 
       if (response.status === 201) {
         setReviews((prev) => [...prev, response.data]);
@@ -131,7 +155,7 @@ const Reviews: React.FC<ReviewsProps> = ({ productId }) => {
         ) : (
           currentReviews.map((review) => (
             <div
-              key={review._id}
+              key={review.id}
               className="border p-4 mb-4 rounded-lg bg-white"
             >
               <div className="flex flex-col md:flex-row md:justify-between md:items-start space-y-2 md:space-y-0 mb-4">

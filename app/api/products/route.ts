@@ -56,14 +56,42 @@ export const GET = async (req: NextRequest) => {
 
     if (!products || products.length === 0) {
       console.log("[products_GET] No products found.");
-      return new NextResponse("No Products Found", { status: 404 });
+      return new NextResponse(
+        JSON.stringify({ message: "No Products Found" }),
+        { status: 404, headers: { "Content-Type": "application/json" } }
+      );
     }
+
+    const url = new URL(req.url);
+    const media = url.searchParams.get("media");
+
+    let parsedMedia: string[] = [];
+    if (media) {
+      try {
+        parsedMedia = JSON.parse(decodeURIComponent(media));
+      } catch (error) {
+        console.error("Error parsing media query parameter:", error);
+        parsedMedia = [];
+      }
+    }
+
+    // Ensure media is properly set for all products and log media URLs
+    products.forEach((product) => {
+      product.media = parsedMedia.length ? parsedMedia : product.media || [""];
+      console.log(
+        `[products_GET] Media URLs for product (${product.id}):`,
+        product.media
+      );
+    });
 
     console.log("[products_GET] Products fetched successfully", products);
     return NextResponse.json(products, { status: 200 });
   } catch (err) {
     console.log("[products_GET]", err);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return new NextResponse(
+      JSON.stringify({ message: "Internal Server Error" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
   }
 };
 

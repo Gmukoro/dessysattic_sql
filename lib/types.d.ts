@@ -4,19 +4,18 @@ type CollectionType = {
   title: string;
   description: string;
   image: string;
-  products?: ProductType[];
+  products: ProductType[];
   createdAt?: Date;
   updatedAt?: Date;
 };
 
 // Product Type
 type ProductType = {
-  item: any;
   id: string;
   title: string;
   description: string;
   media: string[];
-  category: string;
+  category: string[];
   tags: string[];
   sizes: string[];
   colors: string[];
@@ -49,7 +48,7 @@ type OrderItemProductType = {
 };
 
 type OrderType = {
-  id: string;
+  _id?: string;
   products: OrderItemType[];
   shippingAddress: ShippingAddress;
   shippingRate: string;
@@ -94,7 +93,9 @@ type UserType = {
   username: string;
   email: string;
   password: string;
-  wishlist?: string[];
+  avatar: string;
+  wishlist: string[];
+  role: "admin" | "user";
   createdAt: Date;
   updatedAt: Date;
 };
@@ -105,6 +106,8 @@ type BaseUserDoc = UserType & {
   email: string;
   password: string;
   wishlist: string[];
+  role: "admin" | "user";
+  avatar: string;
   verified: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -130,4 +133,12 @@ type VerificationTokenType = {
   token: string;
   userId: string;
   expires: Date;
+};
+
+type OrderItemType = {
+  product: ProductType;
+  color: string;
+  size: string;
+  quantity: number;
+  _id: string;
 };

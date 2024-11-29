@@ -49,14 +49,7 @@ const Footer = () => {
               >
                 Company
               </Link>
-              <Link
-                href="/size_chart"
-                className={`hover:text-red-1 ${
-                  pathname === "/size-chart" && "text-red-1"
-                }`}
-              >
-                Size Chart
-              </Link>
+
               <Link
                 href="/product_information"
                 className={`hover:text-red-1 ${
@@ -167,7 +160,9 @@ const Footer = () => {
                 rel="noopener noreferrer"
                 className="group"
               >
-                <FaInstagram className="text-3xl" />
+                <div className="bg-amber-800 p-3 rounded-full flex justify-center items-center">
+                  <FaInstagram className="text-3xl text-white" />
+                </div>
                 <span className="sr-only">Instagram</span>
                 <div className="text-center text-neutral-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   Instagram
@@ -179,7 +174,9 @@ const Footer = () => {
                 rel="noopener noreferrer"
                 className="group"
               >
-                <FaTiktok className="text-3xl" />
+                <div className="bg-amber-800 p-3 rounded-full flex justify-center items-center">
+                  <FaTiktok className="text-3xl text-white" />
+                </div>
                 <span className="sr-only">TikTok</span>
                 <div className="text-center text-neutral-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   TikTok
@@ -191,7 +188,9 @@ const Footer = () => {
                 // rel="noopener noreferrer"
                 className="group"
               >
-                <FaTwitter className="text-3xl" />
+                <div className="bg-amber-800 p-3 rounded-full flex justify-center items-center">
+                  <FaTwitter className="text-3xl text-white" />
+                </div>
                 <span className="sr-only">X</span>
                 <div className="text-center text-neutral-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   X

@@ -27,22 +27,22 @@ const BestSellersPage = async () => {
   // Display message if no products are found
   if (bestSellersCollection.length === 0) {
     return (
-      <div className="px-10 py-5">
+      <div className="px-4 sm:px-6 md:px-10 py-5">
         <p className="text-body-bold">No Best Sellers found...</p>
       </div>
     );
   }
 
   return (
-    <div className="px-10 py-5 flex flex-col gap-8">
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+    <div className="lg:p-6 sm:px-3 md:px-6 py-6 flex flex-col gap-6">
+      <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 sm:gap-4 md:gap-6 lg:gap-8">
         {bestSellersCollection.map((product) => (
           <div
             key={product.id}
             className="relative group overflow-hidden transform transition duration-300 hover:scale-105"
           >
             {/* Caption at the top-left corner */}
-            <div className="absolute top-2 left-2 bg-yellow-600 text-white text-xs font-semibold px-2 py-1 rounded shadow">
+            <div className="absolute top-2 left-1 bg-yellow-600 text-white text-xs font-semibold px-2 py-1 rounded shadow">
               Best
             </div>
 

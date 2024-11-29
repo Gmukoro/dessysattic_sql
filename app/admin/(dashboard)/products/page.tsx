@@ -13,43 +13,47 @@ import MainLayout from "@/components/admincomponents/MainLayout";
 
 const Products = () => {
   const router = useRouter();
-
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<ProductType[]>([]);
+  const [error, setError] = useState<string | null>(null); // State to store error messages
 
   const fetchProducts = async () => {
     setLoading(true);
+    setError(null); // Clear any previous error messages before fetching
+
     try {
       const res = await fetch("/api/products");
 
+      // Check for any response errors
       if (!res.ok) {
         const errorText = await res.text();
         console.error("Failed to fetch products:", res.status, errorText);
+        setError("Failed to fetch products. Please try again later.");
         throw new Error(errorText);
       }
 
-      try {
-        const data = await res.json(); // Try parsing JSON here
-        setProducts(data);
-      } catch (error) {
-        console.error("Failed to parse JSON:", error);
-        alert("Error fetching products. Please try again later.");
-      } finally {
-        setLoading(false); // Ensure loading is set to false when done
+      const rawData = await res.json(); // Parse the response as JSON directly
+      console.log("API Response:", rawData); // Log it for debugging
+
+      // Ensure rawData is an array and matches the expected format
+      if (Array.isArray(rawData)) {
+        setProducts(rawData); // Set the products if the response is valid
+      } else {
+        throw new Error("Unexpected data format received from the API");
       }
     } catch (error) {
-      console.error("Failed to fetch products:", error);
-      setLoading(false); // Set loading to false in case of error
+      console.error("Error fetching or parsing products:", error);
+      setError("Error fetching products. Please try again later.");
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchProducts(); // Fetch products on mount
-  }, []); // Empty dependency array means this runs once when the component mounts
+    fetchProducts(); // Fetch products when component mounts
+  }, []); // Empty dependency array to ensure it runs only once
 
-  return loading ? (
-    <Loader />
-  ) : (
+  return (
     <MainLayout>
       <div className="px-10 py-5">
         <div className="flex items-center justify-between">
@@ -63,7 +67,14 @@ const Products = () => {
           </Button>
         </div>
         <Separator className="bg-grey-700 my-4" />
-        <DataTable columns={columns} data={products} searchKey="title" />
+
+        {loading ? (
+          <Loader />
+        ) : error ? (
+          <div className="text-red-500 text-center">{error}</div>
+        ) : (
+          <DataTable columns={columns} data={products} searchKey="title" />
+        )}
       </div>
     </MainLayout>
   );

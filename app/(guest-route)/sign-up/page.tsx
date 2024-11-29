@@ -1,3 +1,5 @@
+//app\(guest-route)\sign-up\page.tsx
+
 "use client";
 
 import { FC, useActionState, useEffect } from "react";
@@ -17,17 +19,15 @@ const SignUp: FC = () => {
   // Trigger toast notifications and handle redirection
   useEffect(() => {
     if (state.success) {
-      toast.success("Signup successful! Redirecting to Sign In page...");
       setTimeout(() => {
         router.push("/sign-in");
       }, 3000);
     } else if (state.error) {
-      toast.error(state.error);
     }
   }, [state.success, state.error, router]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-gradient-to-r from-yellow-200 via-neutral-800 to-amber-600">
+    <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-gradient-to- via-neutral-800 to-gray-700">
       {/* Toaster for rendering toast notifications */}
       <Toaster position="top-center" reverseOrder={false} />
       <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">

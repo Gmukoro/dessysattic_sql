@@ -17,7 +17,7 @@ import { auth } from "@/auth";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "DSY Store",
+  title: "DSY Dessysattic",
   description: "DSY: WEAR YOUR CONFIDENCE ",
 };
 

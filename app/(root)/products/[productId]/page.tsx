@@ -1,32 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import ProductDetailsMain from "@/components/ProductDetailsMain";
 import ProductCard from "@/components/ProductCard";
-import Reviews from "@/components/Reviews";
-import React from "react";
+import Reviews from "@/components/productReview";
 import Loader from "@/components/Loader";
-
-// Define the types for your params
-type Params = {
-  productId: string;
-};
 
 const ProductDetails = ({
   params,
 }: {
   params: Promise<{ productId: string }>;
 }) => {
-  const [productId, setProductId] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchProductId = async () => {
-      const resolvedParams = await params;
-      setProductId(resolvedParams.productId);
-    };
-
-    fetchProductId();
-  }, [params]);
+  const { productId } = use(params);
 
   const [productDetails, setProductDetails] = useState<ProductType | null>(
     null
@@ -89,7 +74,7 @@ const ProductDetails = ({
           </p>
           <div className="flex flex-wrap gap-8 mx-auto mt-8">
             {relatedProducts.map((product) => (
-              <div className="" key={product.id}>
+              <div key={product.id}>
                 <ProductCard product={product} />
               </div>
             ))}

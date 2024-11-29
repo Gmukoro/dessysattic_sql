@@ -2,10 +2,42 @@
 
 import { useSession } from "next-auth/react";
 import Image from "next/image";
-import { getOrderById, getOrders } from "@/lib/models/Order";
+import { useState, useEffect } from "react";
+import { getOrders } from "@/lib/models/Order";
+import Loader from "@/components/Loader";
 
-const Orders = async () => {
+// Define the types for the OrderItem and Order
+type OrderItemType = {
+  product: {
+    id: string;
+    title: string;
+    media: string[];
+    price: number;
+  };
+  color: string;
+  size: string;
+  quantity: number;
+};
+
+const Orders = () => {
   const { data: session } = useSession();
+  const [orders, setOrders] = useState<OrderType[] | null>(null);
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      const fetchOrders = async () => {
+        try {
+          const fetchedOrders = await getOrders(session.user.id);
+          // Ensure the fetched orders have the same type as OrderType[]
+          setOrders(fetchedOrders);
+        } catch (error) {
+          console.error("Error fetching orders:", error);
+        }
+      };
+
+      fetchOrders();
+    }
+  }, [session]);
 
   if (!session) {
     return (
@@ -13,10 +45,15 @@ const Orders = async () => {
     );
   }
 
-  // Fetch orders by user ID (session user ID)
-  const orders = await getOrders(session.user.id as string);
+  if (orders === null) {
+    return (
+      <div>
+        <Loader />
+      </div>
+    );
+  }
 
-  if (!orders || orders.length === 0) {
+  if (orders.length === 0) {
     return <p className="text-body-bold my-5 ml-4">You have no orders yet.</p>;
   }
 
@@ -27,8 +64,11 @@ const Orders = async () => {
       </p>
 
       <div className="flex flex-col gap-10">
-        {orders.map((order: OrderType) => (
-          <div className="flex flex-col gap-8 p-4 hover:bg-grey-1">
+        {orders.map((order) => (
+          <div
+            key={order._id ?? "fallback_id"}
+            className="flex flex-col gap-8 p-4 hover:bg-grey-1"
+          >
             <div className="flex gap-20 max-md:flex-col max-md:gap-3">
               <p className="text-base-bold">Order ID: {order._id}</p>
               <p className="text-base-bold">
@@ -37,18 +77,17 @@ const Orders = async () => {
             </div>
 
             <div className="flex flex-col gap-5">
-              {order.products.map((orderItem: OrderItemType) => (
-                <div key={orderItem.product._id} className="flex gap-4">
-                  {orderItem.product.media &&
-                    orderItem.product.media.length > 0 && (
-                      <Image
-                        src={orderItem.product.media[0]}
-                        alt={orderItem.product.title}
-                        width={100}
-                        height={100}
-                        className="w-32 h-32 object-cover rounded-lg"
-                      />
-                    )}
+              {order.products.map((orderItem) => (
+                <div key={orderItem.product.id} className="flex gap-4">
+                  {orderItem.product.media.length > 0 && (
+                    <Image
+                      src={orderItem.product.media[0]}
+                      alt={orderItem.product.title}
+                      width={100}
+                      height={100}
+                      className="w-32 h-32 object-cover rounded-lg"
+                    />
+                  )}
                   <div className="flex flex-col justify-between">
                     <p className="text-small-medium">
                       Title:{" "}
@@ -96,5 +135,3 @@ const Orders = async () => {
 };
 
 export default Orders;
-
-export const dynamic = "force-dynamic";
