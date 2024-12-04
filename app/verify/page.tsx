@@ -11,7 +11,7 @@ import VerificationSuccess from "@/components/VerificationSuccess";
 interface Props {
   searchParams: {
     token: string;
-    userId: string;
+    userId: number;
   };
 }
 

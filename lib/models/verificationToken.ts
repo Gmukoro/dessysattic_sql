@@ -1,17 +1,17 @@
 // lib\models\verificationToken.ts
 import bcrypt from "bcryptjs";
-import { query } from "@/lib/database"; // Import our custom query function
+import { query } from "@/lib/database";
 
 interface VerificationTokenAttributes {
   token: string;
-  userId: string;
+  userId: number;
   expires: Date;
 }
 
 interface VerificationTokenResult {
   id: number;
   token: string;
-  userId: string;
+  userId: number;
   expires: Date;
   compareToken: (token: string) => boolean;
 }
@@ -49,7 +49,7 @@ export const createVerificationToken = async (
 
 // Find a token by user ID
 export const getTokenByUserId = async (
-  userId: string
+  userId: number
 ): Promise<VerificationTokenResult | null> => {
   const selectQuery = `
     SELECT * FROM verification_tokens WHERE userId = ? LIMIT 1

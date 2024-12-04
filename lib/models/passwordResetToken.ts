@@ -6,7 +6,7 @@ import cron from "node-cron"; // Import node-cron for scheduling tasks
 
 interface PasswordResetTokenAttributes {
   token: string;
-  userId: string;
+  userId: number;
   expires: Date;
 }
 
@@ -35,7 +35,11 @@ export const createPasswordResetToken = async (
 export const comparePasswordResetToken = async (
   token: string,
   userId: string
-): Promise<{ id: string; token: string } | null> => {
+): Promise<{
+  [x: string]: any;
+  id: string;
+  token: string;
+} | null> => {
   const selectQuery = `SELECT id, token FROM password_reset_tokens WHERE userId = ? ORDER BY createdAt DESC LIMIT 1`;
   try {
     const rows = await query({ query: selectQuery, values: [userId] });
@@ -70,7 +74,7 @@ export const deleteExpiredTokens = async () => {
 };
 
 // Delete password reset token by user ID
-export const deleteByUserId = async (userId: string) => {
+export const deleteByUserId = async (userId: number) => {
   const deleteQuery = `DELETE FROM password_reset_tokens WHERE userId = ?`;
   try {
     const result = await query({ query: deleteQuery, values: [userId] });

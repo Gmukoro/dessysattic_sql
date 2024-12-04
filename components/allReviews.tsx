@@ -106,10 +106,10 @@ const ReviewsComponent = () => {
           </Swiper>
 
           {/* Navigation Buttons */}
-          <div className="absolute top-1/2 left-0 transform -translate-y-1/2 swiper-button-prev cursor-pointer z-10">
+          <div className="absolute top-1/2 left-0 transform -translate-y-1/2 swiper-button-prev cursor-pointer z-5">
             <HiArrowLeft className="text-white text-2xl" />
           </div>
-          <div className="absolute top-1/2 right-0 transform -translate-y-1/2 swiper-button-next cursor-pointer z-10">
+          <div className="absolute top-1/2 right-0 transform -translate-y-1/2 swiper-button-next cursor-pointer z-5">
             <HiArrowRight className="text-white text-2xl" />
           </div>
         </div>

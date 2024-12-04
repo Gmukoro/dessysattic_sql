@@ -5,11 +5,12 @@ import { signInSchema } from "@/utils/verificationSchema";
 import { getUserByEmail, getAdminEmails } from "@/lib/models/user";
 
 export interface SessionUserProfile {
+  tostring(id: string): number;
   id: string;
   name: string;
   email: string;
   role: string;
-  avatar?: string;
+  avatar?: { id: string; url: string };
   verified: boolean;
 }
 
@@ -43,9 +44,9 @@ export const {
         if (!user || !user.id || !user.password) {
           throw new Error("User not found or invalid object");
         }
-
-        if (!bcrypt.compareSync(password, user.password)) {
-          throw new Error("Email/Password mismatched!");
+        const passwordMatch = await bcrypt.compare(password, user.password);
+        if (!passwordMatch) {
+          throw new Error("Incorrect email or password!");
         }
 
         // Ensure correct admin role handling
@@ -56,7 +57,7 @@ export const {
         }
 
         return {
-          id: user.id,
+          id: user.id.toString(),
           email: user.email,
           name: user.name,
           role: role,
@@ -73,12 +74,12 @@ export const {
   },
 
   callbacks: {
-    async signIn({ account, profile }) {
-      if (account?.provider === "credentials") {
-        return true;
-      }
-      return false;
-    },
+    // async signIn({ account, profile }) {
+    //   if (account?.provider === "credentials") {
+    //     return true;
+    //   }
+    //   return false;
+    // },
     async jwt({ token, user, trigger, session }) {
       if (user) {
         if (!user.email) {
@@ -135,7 +136,6 @@ export const {
       }
 
       return session;
-      console.log(session);
     },
   },
 });

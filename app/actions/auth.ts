@@ -1,6 +1,6 @@
 "use server";
 
-import { z } from "zod";
+import z from "zod";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
@@ -39,200 +39,159 @@ const adminEmails = ["dessysattic@gmail.com", "Omoefeeweka6@gmail.com"];
 
 interface AuthResponse {
   success?: boolean;
-  errors?: Record<string, string[] | undefined>;
+  errors?: Record<string, string[]>;
   error?: string;
 }
 // Utility function for response
-const sendResponse = (status: number, data: any) => {
-  return {
-    status,
-    data,
-  };
-};
+const sendResponse = (status: number, data: any) => ({ status, data });
 
 // Utility: Create and send verification token
 const handleVerificationToken = async (user: {
-  id: string;
+  id: number;
   name: string;
   email: string;
 }) => {
-  const { id: userId, name, email } = user;
   const token = crypto.randomBytes(36).toString("hex");
 
   // Cleanup existing tokens and create a new one
-  await cleanupExpiredTokens(parseInt(token));
+  await cleanupExpiredTokens(user.id);
   await createVerificationToken({
     token,
-    userId,
-    expires: new Date(Date.now() + 1000 * 60 * 60 * 24),
+    userId: user.id,
+    expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
   });
 
-  const link = `${process.env.VERIFICATION_LINK}?token=${token}&userId=${userId}`;
+  const link = `${process.env.VERIFICATION_LINK}?token=${token}&userId=${user.id}`;
+
+  // Pass token along with other required fields
   await mail.sendVerificationMail({
     link,
     name: user.name,
     to: user.email,
-    token: "",
+    token, // Add the token here
   });
 };
 
 // Signup
 const signUpSchema = z.object({
-  name: z.string().trim().min(3, "Invalid name!"),
-  email: z.string().email("Invalid email!"),
-  password: z.string().min(8, "Password is too short!"),
+  name: z.string().trim().min(3, "Name must be at least 3 characters."),
+  email: z.string().email("Invalid email format."),
+  password: z.string().min(8, "Password must be at least 8 characters."),
 });
 
-export const signUp = async (state: AuthResponse, data: FormData) => {
+export const signUp = async (
+  state: AuthResponse,
+  data: FormData
+): Promise<AuthResponse> => {
   const result = signUpSchema.safeParse({
     name: data.get("name"),
     email: data.get("email"),
     password: data.get("password"),
   });
 
-  console.log("Schema Validation Result:", result);
-
   if (!result.success) {
-    // Log the errors if validation fails
-    console.log("Validation Failed:", result.error.formErrors.fieldErrors);
     return {
       success: false,
       errors: result.error.formErrors.fieldErrors,
-      error: undefined,
     };
   }
 
   const { name, email, password } = result.data;
-  console.log("Validated Data:", { name, email, password });
 
   const existingUser = await getUserByEmail(email);
-  console.log("Existing User Check:", existingUser);
-
   if (existingUser) {
-    console.log("User already exists");
-    return {
-      success: false,
-      error: "User already exists!",
-      errors: undefined,
-    };
+    return { success: false, error: "User already exists!" };
   }
 
+  const hashedPassword = await bcrypt.hash(password, 10);
   const user = await createUser({
     name,
     email,
-    password: bcrypt.hashSync(password, 10),
+    password: hashedPassword,
     provider: "credentials",
     verified: false,
   });
-  console.log("User Created:", user);
 
-  // Explicitly cast or convert id to string
-  await handleVerificationToken({ id: user.id.toString(), name, email });
-  console.log("Verification Token Sent");
+  // Ensure user is not null before passing it to handleVerificationToken
+  if (user && user.id && user.name && user.email) {
+    await handleVerificationToken(user);
+  } else {
+    return { success: false, error: "User creation failed or incomplete." };
+  }
 
   await signIn("credentials", { email, password, redirectTo: "/" });
-  console.log("User Signed In");
 
-  return {
-    success: true,
-    errors: undefined,
-  };
+  return { success: true };
 };
 
 export const continueWithCredentials = async (
   state: AuthResponse,
   data: FormData
 ): Promise<AuthResponse> => {
-  try {
-    // Validate the data against the schema
-    const result = signInSchema.safeParse({
-      email: data.get("email"),
-      password: data.get("password"),
-    });
+  const result = signInSchema.safeParse({
+    email: data.get("email"),
+    password: data.get("password"),
+  });
 
-    if (!result.success) {
-      return { success: false, errors: result.error.formErrors.fieldErrors };
-    }
-
-    const { email, password } = result.data;
-
-    // Check if the user exists and if the password matches
-    const user = await getUserByEmail(email);
-    if (!user) {
-      return { success: false, error: "User not found" };
-    }
-
-    const isPasswordValid = await compareUserPassword(email, password);
-    if (!isPasswordValid) {
-      return { success: false, error: "Incorrect password" };
-    }
-
-    // Sign-in using NextAuth
-    await signIn("credentials", {
-      email,
-      password,
-      redirectTo: "/",
-    });
-
-    return { success: true };
-  } catch (error) {
-    let errorMsg = "";
-    if (error instanceof Error && error.message === "NEXT_REDIRECT") {
-      redirect("/");
-      // Handle the redirect error
-    } else if (error instanceof AuthError) {
-      errorMsg = error.message;
-    } else {
-      errorMsg = (error as any).message;
-    }
-
-    return { error: errorMsg, success: false };
+  if (!result.success) {
+    return { success: false, errors: result.error.formErrors.fieldErrors };
   }
+
+  const { email, password } = result.data;
+
+  // Ensure password is defined and of type string
+  if (typeof password !== "string") {
+    return { success: false, error: "Password is required." };
+  }
+
+  const user = await getUserByEmail(email);
+
+  if (!user) {
+    return { success: false, error: "User not found." };
+  }
+
+  // Ensure that the password in the user object is defined and a string
+  if (typeof user.password !== "string") {
+    return { success: false, error: "User password is invalid." };
+  }
+
+  // Now, password and user.password are both guaranteed to be strings
+  const isPasswordValid = await bcrypt.compare(password, user.password);
+
+  if (!isPasswordValid) {
+    return { success: false, error: "Incorrect password." };
+  }
+
+  await signIn("credentials", { email, password });
+  return { success: true };
 };
 
 interface VerificationResponse {
   success?: boolean;
 }
-export const generateVerificationLink = async (
-  state: VerificationResponse
-): Promise<VerificationResponse> => {
-  const session = await auth();
-  if (!session) return { success: false };
 
-  const { email, id, name } = session.user;
+export const generateVerificationLink =
+  async (): Promise<VerificationResponse> => {
+    const session = await auth();
+    if (!session) return { success: false };
 
-  // Fetch user details from the database
-  const user = await getUserById(session?.user.id);
-  if (!user) {
-    return { success: false };
-  }
+    const userId = Number(session.user.id);
+    if (isNaN(userId)) return { success: false };
 
-  // Check if the user is already verified
-  if (user.verified) {
-    // User is already verified
-    return { success: false };
-  }
+    const user = await getUserById(userId);
+    if (!user || user.verified) {
+      return { success: user?.verified || false };
+    }
 
-  // Check if a token already exists for the user
-  const existingToken = await getTokenByUserId(id);
-  if (existingToken) {
-    // If the token already exists and is valid, return success
+    const token = uuidv4();
+    await createVerificationToken({
+      token,
+      userId,
+      expires: new Date(Date.now() + 60 * 60 * 1000),
+    });
+
     return { success: true };
-  }
-
-  // Generate a new verification token and store it
-  const token = uuidv4();
-  const expirationTime = new Date(Date.now() + 3600000);
-
-  // Create the verification token
-  await createVerificationToken({
-    token,
-    userId: id,
-    expires: expirationTime,
-  });
-
-  return { success: true };
-};
+  };
 
 export const updateProfileInfo = async (data: FormData) => {
   const session = await auth();
@@ -241,14 +200,11 @@ export const updateProfileInfo = async (data: FormData) => {
   const userInfo: { name?: string; avatar?: { id: string; url: string } } = {};
 
   const name = data.get("name");
-  const avatar = data.get("avatar");
-
-  // Validate and update name if necessary
   if (typeof name === "string" && name.trim().length >= 3) {
-    userInfo.name = name;
+    userInfo.name = name.trim();
   }
 
-  // Validate and upload the avatar if it's a valid image file
+  const avatar = data.get("avatar");
   if (avatar instanceof File && avatar.type.startsWith("image")) {
     const result = await uploadFileToCloud(avatar);
     if (result) {
@@ -256,15 +212,13 @@ export const updateProfileInfo = async (data: FormData) => {
     }
   }
 
-  // Update the user's data in MySQL database
-  await updateUser(session.user.id, userInfo);
+  const userId = Number(session.user.id);
 
-  // Update session data with new user info
+  await updateUser(userId, userInfo);
   await unstable_update({
     user: {
       ...session.user,
-      name: userInfo.name,
-      avatar: userInfo.avatar?.url,
+      ...userInfo,
     },
   });
 };
@@ -273,35 +227,46 @@ export const updateProfileInfo = async (data: FormData) => {
 export const generatePassResetLink = async (
   state: { message?: string; error?: string },
   formData: FormData
-): Promise<{ message: string; error?: string }> => {
+): Promise<{ message: string; error?: string; success?: boolean }> => {
   const email = formData.get("email");
-  if (typeof email !== "string") {
-    return { error: "Invalid email!", message: "" }; // Added message
+  const userId = Number(formData.get("userId"));
+
+  if (typeof email !== "string" || isNaN(userId)) {
+    return { error: "Invalid email or userId!", message: "" };
   }
 
   const message = "If we found your profile, we sent you the link!";
   const user = await getUserByEmail(email);
   if (!user) {
-    return { message }; // Already valid
+    return { message };
+  }
+
+  if (!user.id) {
+    return { error: "User ID is invalid!", message: "" };
   }
 
   const token = crypto.randomBytes(36).toString("hex");
-  await deleteByUserId(user.id || "");
+
+  await deleteByUserId(user.id);
   await createPasswordResetToken({
     token,
-    userId: user.id || "",
+    userId: user.id,
     expires: new Date(Date.now() + 1000 * 60 * 60 * 24),
   });
 
   const link = `${process.env.PASS_RESET_LINK}?token=${token}&userId=${user.id}`;
-  await mail.sendPassResetMail({
-    link,
-    name: user.name,
-    to: email,
-    token: "",
-  });
+  try {
+    await mail.sendPassResetMail({
+      link,
+      name: user.name,
+      to: email,
+      token: "",
+    });
+  } catch (error) {
+    return { error: "Failed to send password reset email.", message: "" };
+  }
 
-  return { message };
+  return { message, success: true };
 };
 
 // Update password
@@ -322,15 +287,18 @@ export const updatePassword = async (
 
   if (!resetToken) return { success: false, error: "Invalid request!" };
 
-  const user = await getUserById(userId);
+  const user = await getUserById(Number(userId));
   if (!user)
     return {
       success: false,
       error: "Could not update password, User not found!",
     };
 
-  await updateUser(userId, { password: bcrypt.hashSync(one, 10) });
-  await deleteByUserId(resetToken.id);
+  // Corrected the usage of 'Number' here
+  await updateUser(Number(userId), { password: bcrypt.hashSync(one, 10) });
+
+  // Corrected the call to deleteByUserId
+  await deleteByUserId(Number(user.id));
 
   return { success: true };
 };

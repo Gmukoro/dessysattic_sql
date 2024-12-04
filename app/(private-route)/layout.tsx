@@ -20,7 +20,7 @@ const PrivateLayout: FC<Props> = async ({ children }) => {
   return (
     <html lang="en">
       <body>
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider basePath="/api/auth">{children}</SessionProvider>
       </body>
     </html>
   );

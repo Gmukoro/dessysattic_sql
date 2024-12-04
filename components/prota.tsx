@@ -35,11 +35,12 @@ const Prota = async () => {
 
   return (
     <div className="lg:p-6 sm:px-3 md:px-6 py-6 flex flex-col gap-6">
-      <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 sm:gap-4 md:gap-6 lg:gap-8">
+      {/* Responsive container */}
+      <div className="flex flex-wrap gap-2 sm:gap-4">
         {protaCollection.map((product) => (
           <div
             key={product.id}
-            className="relative group overflow-hidden transform transition duration-300 hover:scale-105"
+            className="w-[48%] sm:w-[48%] md:w-[30%] lg:w-[18%] relative group overflow-hidden transform transition duration-300 hover:scale-105"
           >
             <ProductCard
               product={{

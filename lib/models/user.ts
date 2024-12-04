@@ -15,7 +15,7 @@ interface UserData extends RowDataPacket {
 // Define the interface for user attributes
 export interface UserAttributes {
   verified: any;
-  id?: string;
+  id?: number;
   name: string;
   email: string;
   password?: string;
@@ -61,7 +61,7 @@ const formatUser = (user: any): UserAttributes => ({
 });
 
 export const updateWishlist = async (
-  userId: string,
+  userId: number,
   newWishlistItem: string
 ) => {
   const user = await getUserById(userId);
@@ -75,7 +75,7 @@ export const updateWishlist = async (
     try {
       await query({
         query: updateQuery,
-        values: [JSON.stringify(updatedWishlist), userId], // Store as JSON string
+        values: [JSON.stringify(updatedWishlist), userId.toString()],
       });
       console.log("Wishlist updated successfully!");
     } catch (error) {
@@ -92,16 +92,22 @@ export const createUser = async ({
   name,
   email,
   password,
-  provider,
+  provider = "credentials",
   verified,
   role = "user",
+  wishlist,
 }: Omit<UserAttributes, "id" | "createdAt" | "updatedAt">): Promise<{
-  id: string;
+  id: number;
+  name: string;
+  email: string;
 }> => {
   const sqlQuery = `
     INSERT INTO users (name, email, password, provider, verified, role, createdAt, updatedAt)
-    VALUES (?, ?, ?, ?, NOW(), NOW())
+    VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
   `;
+
+  const userWishlist = wishlist || [];
+
   try {
     const result = (await query({
       query: sqlQuery,
@@ -109,19 +115,19 @@ export const createUser = async ({
         name ?? "",
         email ?? "",
         hashPassword(password ?? ""),
-        provider,
+        provider ?? "credentials",
         verified ?? false,
         role,
       ],
     })) as ResultSetHeader;
 
-    return { id: result.insertId.toString() };
+    // Return the user data with ID from the result
+    return { id: result.insertId, name, email };
   } catch (error) {
     console.error("Error creating user:", error);
     throw new Error("Failed to create user.");
   }
 };
-
 export const getUserByEmail = async (
   email: string
 ): Promise<UserAttributes | null> => {
@@ -140,7 +146,7 @@ export const getUserByEmail = async (
 
 // Fetch a user by ID
 export const getUserById = async (
-  id: string
+  id: number
 ): Promise<UserAttributes | null> => {
   const selectQuery = `SELECT * FROM users WHERE id = ?`;
   try {
@@ -149,11 +155,8 @@ export const getUserById = async (
       values: [id],
     })) as UserResult;
 
-    // If user is found, format and return
     if (users.length > 0) {
       const user = users[0];
-
-      // Ensure that the 'formatUser' function is handling the expected data structure
       return formatUser(user);
     } else {
       return null;
@@ -166,7 +169,7 @@ export const getUserById = async (
 
 // Update user attributes
 export const updateUser = async (
-  id: string,
+  id: number,
   updatedData: Partial<UserAttributes>
 ) => {
   const updateFields = [];
@@ -227,7 +230,7 @@ export const updateUser = async (
 
 // Add product to wishlist
 export const addToWishlist = async (
-  userId: string,
+  userId: number,
   updatedWishlist: string[]
 ): Promise<UserAttributes> => {
   if (!Array.isArray(updatedWishlist)) {

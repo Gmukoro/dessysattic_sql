@@ -22,7 +22,7 @@ export const POST = async (req: NextRequest) => {
       return new NextResponse("Product Id required", { status: 400 });
     }
 
-    const userId = session.user.id;
+    const userId = Number(session.user.id);
     const user = await getUserById(userId);
 
     if (!user) {
@@ -36,7 +36,7 @@ export const POST = async (req: NextRequest) => {
 
     // Add or Remove product from wishlist
     const updatedWishlist = isProductInWishlist
-      ? await removeFromWishlist(userId, productId)
+      ? await removeFromWishlist(String(userId), productId)
       : await addToWishlist(userId, [...userWishlist, productId]);
 
     return NextResponse.json({ wishlist: updatedWishlist });

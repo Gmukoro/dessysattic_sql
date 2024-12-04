@@ -1,26 +1,18 @@
-// app(guest-route)/layout.tsx
-"use client";
+//app\(guest-route)\layout.tsx
 
-import { useSession } from "next-auth/react";
+import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { FC, ReactNode, useEffect } from "react";
+import { FC, ReactNode } from "react";
 import "../globals.css";
 
 interface Props {
   children: ReactNode;
 }
 
-const GuestLayout: FC<Props> = ({ children }) => {
-  const { data: session, status } = useSession();
+const GuestLayout: FC<Props> = async ({ children }) => {
+  const session = await auth();
 
-  // Ensure that you are only running this logic on the client-side
-  useEffect(() => {
-    if (session) {
-      console.log("Session exists, redirecting to root.");
-      redirect("/");
-      window.location.reload();
-    }
-  }, [session]);
+  if (session) return redirect("/");
 
   return (
     <html lang="en">

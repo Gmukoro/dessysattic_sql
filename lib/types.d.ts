@@ -89,7 +89,7 @@ type ReviewType = {
 
 // User Type
 type UserType = {
-  id: string;
+  id: number;
   username: string;
   email: string;
   password: string;
@@ -101,7 +101,7 @@ type UserType = {
 };
 
 type BaseUserDoc = UserType & {
-  id: string;
+  id: number;
   name: string;
   email: string;
   password: string;

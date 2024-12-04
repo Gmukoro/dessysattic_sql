@@ -16,12 +16,12 @@ const transport = nodemailer.createTransport({
 type Options = {
   to: string;
   name: string;
-  link?: string; // Optional if already in token
+  link?: string;
   token: string;
 };
 
 // Generate a JWT token
-const generateToken = (email: string, userId?: string) => {
+const generateToken = (email: string, userId?: number) => {
   const payload = { email, userId };
   const token = jwt.sign(payload, process.env.JWT_SECRET!, {
     expiresIn: "15m",
