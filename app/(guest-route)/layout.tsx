@@ -15,7 +15,7 @@ const GuestLayout: FC<Props> = async ({ children }) => {
   if (session) return redirect("/");
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body>{children}</body>
     </html>
   );

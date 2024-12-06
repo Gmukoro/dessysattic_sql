@@ -17,7 +17,7 @@ const UpdatePasswordForm: FC<Props> = ({ userId, token }) => {
     <div className="space-y-6 max-w-96 mx-auto pt-20 sm:p-0 p-4">
       <div>
         {success ? (
-          <p className="text-green-500">Password Updated SuccessFully.</p>
+          <p className="text-green-500">Password Updated SuccessFully</p>
         ) : null}
       </div>
       <div>{error ? <p className="text-amber-800">{error}</p> : null}</div>

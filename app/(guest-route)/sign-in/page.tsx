@@ -1,13 +1,13 @@
 "use client";
 
-import { FC, useEffect, useState } from "react";
+import { useState } from "react";
 import { Input } from "@nextui-org/react";
-import { continueWithCredentials } from "@/app/actions/auth";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Loader from "@/components/Loader";
+import { continueWithCredentials } from "@/app/actions/auth";
 
-const SignIn: FC = () => {
+const SignIn = () => {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
@@ -15,21 +15,6 @@ const SignIn: FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const router = useRouter();
   const { data: session, status } = useSession();
-
-  // Make sure session is loaded before redirecting
-  // useEffect(() => {
-  //   if (status === "authenticated") {
-  //     router.replace("/"); // Redirect to home page when authenticated
-  //   }
-  // }, [status, router]);
-
-  // if (status === "loading") {
-  //   return (
-  //     <div>
-  //       <Loader />
-  //     </div>
-  //   );
-  // }
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,11 +31,16 @@ const SignIn: FC = () => {
     formData.append("password", password);
 
     try {
-      const response = await continueWithCredentials({}, formData);
+      const response = await continueWithCredentials(
+        { success: false },
+        formData
+      );
 
       if (response.success) {
         setSuccessMessage("Sign in successful!");
-        window.location.reload();
+        setTimeout(() => {
+          router.refresh();
+        }, 2000);
       } else {
         setError(response.error || "Invalid email or password.");
       }
@@ -69,26 +59,23 @@ const SignIn: FC = () => {
           Sign-in to Dessysattic
         </h1>
         <form onSubmit={handleSignIn} className="space-y-4">
-          {/* Email Input */}
           <Input
-            placeholder="johndoe@email.com"
+            placeholder="johndoe@gmail.com"
             name="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            disabled={isLoading}
             className="w-full px-4 py-2 mb-4 border border-gray-300 rounded-lg text-base sm:text-lg"
           />
-
-          {/* Password Input */}
           <Input
             placeholder="********"
             type="password"
             name="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            disabled={isLoading}
             className="w-full px-4 py-2 mb-4 border border-gray-300 rounded-lg text-base sm:text-lg"
           />
-
-          {/* Submit Button */}
           <button
             type="submit"
             disabled={isLoading}
@@ -101,14 +88,10 @@ const SignIn: FC = () => {
             )}
           </button>
         </form>
-
-        {/* Success or Error Message */}
         {error && <p className="text-red-500 mt-4 text-center">{error}</p>}
         {successMessage && (
           <p className="text-green-500 mt-4 text-center">{successMessage}</p>
         )}
-
-        {/* Footer Links */}
         <div className="mt-4 text-center">
           <p className="text-sm text-amber-950">Don't have an account?</p>
           <a href="/sign-up" className="text-sm text-amber-800 hover:underline">

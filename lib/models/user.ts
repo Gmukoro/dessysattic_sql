@@ -1,7 +1,7 @@
 //lib\models\user.ts
 
 import { query } from "@/lib/database";
-import { compareSync, genSaltSync, hashSync } from "bcryptjs";
+import bcrypt, { compareSync } from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
 import { ResultSetHeader, RowDataPacket } from "mysql2";
 
@@ -31,17 +31,14 @@ export interface UserAttributes {
 type UserResult = UserAttributes[];
 
 // Password hashing
-export const hashPassword = (password: string): string => {
-  const salt = genSaltSync(10);
-  return hashSync(password, salt);
+export const hashPassword = async (password: string) => {
+  const salt = await bcrypt.genSalt(10);
+  return await bcrypt.hash(password, salt);
 };
 
 // Verify password
-export const comparePasswords = (
-  plainTextPassword: string,
-  hashedPassword: string
-): boolean => {
-  return compareSync(plainTextPassword, hashedPassword);
+const comparePasswords = async (password: string, hashedPassword: string) => {
+  return await bcrypt.compare(password, hashedPassword);
 };
 
 // Format user data to maintain consistent structure
@@ -88,25 +85,28 @@ export const updateWishlist = async (
 
 // Create a new user
 
-export const createUser = async ({
-  name,
-  email,
-  password,
-  provider = "credentials",
-  verified,
-  role = "user",
-  wishlist,
-}: Omit<UserAttributes, "id" | "createdAt" | "updatedAt">): Promise<{
+// Create a new user
+export const createUser = async (
+  data: Omit<UserAttributes, "id" | "createdAt" | "updatedAt">
+): Promise<{
   id: number;
   name: string;
   email: string;
 }> => {
+  const {
+    name,
+    email,
+    password,
+    provider = "credentials",
+    verified,
+    role = "user",
+    wishlist,
+  } = data;
+
   const sqlQuery = `
     INSERT INTO users (name, email, password, provider, verified, role, createdAt, updatedAt)
     VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
   `;
-
-  const userWishlist = wishlist || [];
 
   try {
     const result = (await query({
@@ -114,33 +114,44 @@ export const createUser = async ({
       values: [
         name ?? "",
         email ?? "",
-        hashPassword(password ?? ""),
-        provider ?? "credentials",
+        password ?? "",
+        provider,
         verified ?? false,
         role,
       ],
     })) as ResultSetHeader;
 
-    // Return the user data with ID from the result
+    // Save wishlist if it's not empty
+    if (wishlist) {
+      await updateWishlist(result.insertId, wishlist[0]);
+    }
+
     return { id: result.insertId, name, email };
   } catch (error) {
     console.error("Error creating user:", error);
     throw new Error("Failed to create user.");
   }
 };
+
 export const getUserByEmail = async (
   email: string
 ): Promise<UserAttributes | null> => {
   const selectQuery = `SELECT * FROM users WHERE email = ?`;
+
   try {
     const users = (await query({
       query: selectQuery,
       values: [email.trim()],
     })) as UserResult;
-    return users.length > 0 ? formatUser(users[0]) : null;
+
+    // Check that the result is a valid array
+    if (Array.isArray(users) && users.length > 0) {
+      return formatUser(users[0]);
+    }
+    return null;
   } catch (error) {
     console.error("Error fetching user by email:", error);
-    throw new Error("Error fetching user by email.");
+    return null;
   }
 };
 
@@ -149,21 +160,21 @@ export const getUserById = async (
   id: number
 ): Promise<UserAttributes | null> => {
   const selectQuery = `SELECT * FROM users WHERE id = ?`;
+
   try {
     const users = (await query({
       query: selectQuery,
       values: [id],
     })) as UserResult;
 
-    if (users.length > 0) {
-      const user = users[0];
-      return formatUser(user);
-    } else {
-      return null;
+    // Ensure result is valid
+    if (Array.isArray(users) && users.length > 0) {
+      return formatUser(users[0]);
     }
+    return null;
   } catch (error) {
     console.error("Error fetching user by ID:", error);
-    throw new Error("Error fetching user by ID.");
+    return null;
   }
 };
 
@@ -187,7 +198,7 @@ export const updateUser = async (
 
   if (updatedData.password) {
     updateFields.push("password = ?");
-    updateValues.push(hashPassword(updatedData.password));
+    updateValues.push(await hashPassword(updatedData.password));
   }
 
   if (updatedData.avatar) {
@@ -258,7 +269,7 @@ export const addToWishlist = async (
 
 // Remove product from wishlist
 export const removeFromWishlist = async (
-  userId: string,
+  userId: number,
   productId: string
 ): Promise<string[]> => {
   try {

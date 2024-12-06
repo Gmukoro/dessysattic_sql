@@ -1,8 +1,14 @@
+//auth.ts
+
 import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { signInSchema } from "@/utils/verificationSchema";
-import { getUserByEmail, getAdminEmails } from "@/lib/models/user";
+import {
+  getUserByEmail,
+  getAdminEmails,
+  compareUserPassword,
+} from "@/lib/models/user";
 
 export interface SessionUserProfile {
   tostring(id: string): number;
@@ -20,40 +26,48 @@ declare module "next-auth" {
   }
 }
 
-export const {
-  auth,
-  handlers: { GET, POST },
-  signIn,
-  signOut,
-  unstable_update,
-} = NextAuth({
+export const { auth, handlers, signIn, signOut, unstable_update } = NextAuth({
+  debug: true,
   providers: [
     Credentials({
+      credentials: {
+        email: { label: "Email", type: "text" },
+        password: { label: "Password", type: "password" },
+      },
+      // authorize callback
       async authorize(credentials: any) {
         const result = signInSchema.safeParse(credentials);
         if (!result.success) {
-          throw new Error("Please provide a valid email & password!");
+          throw new CredentialsSignin(
+            "Please provide a valid email & password!"
+          );
         }
 
         const { email, password } = result.data;
+        let user = await getUserByEmail(email);
+        console.log("user:", email);
 
-        // Fetch user from the database
-        const user = await getUserByEmail(email);
-
-        // Check if the user exists and is a valid object
-        if (!user || !user.id || !user.password) {
-          throw new Error("User not found or invalid object");
+        if (!user) {
+          throw new CredentialsSignin("User not found.");
         }
+        if (!user.password || typeof user.password !== "string") {
+          throw new CredentialsSignin("Password not set or invalid.");
+        }
+
         const passwordMatch = await bcrypt.compare(password, user.password);
+        console.log("passwordMatch:", passwordMatch);
         if (!passwordMatch) {
-          throw new Error("Incorrect email or password!");
+          throw new CredentialsSignin("Incorrect email or password.");
         }
 
-        // Ensure correct admin role handling
+        // Role handling for admin users
         const adminEmails = await getAdminEmails(email);
         let role = "user";
         if (adminEmails.includes(email)) {
           role = "admin";
+        }
+        if (!user || !user.id) {
+          throw new CredentialsSignin("User or User ID is missing.");
         }
 
         return {
@@ -68,18 +82,20 @@ export const {
     }),
   ],
 
-  secret: process.env.JWT_SECRET,
+  secret: process.env.AUTH_SECRET,
+
   session: {
     strategy: "jwt",
   },
 
   callbacks: {
-    // async signIn({ account, profile }) {
-    //   if (account?.provider === "credentials") {
-    //     return true;
-    //   }
-    //   return false;
-    // },
+    async signIn({ account, profile }) {
+      if (account?.provider === "credentials") {
+        return true;
+      }
+      return false;
+    },
+    // jwt callback
     async jwt({ token, user, trigger, session }) {
       if (user) {
         if (!user.email) {
@@ -94,14 +110,13 @@ export const {
         // Fetch user data from the database
         const dbUser = await getUserByEmail(user.email);
 
-        // Check if the user exists and their ID is valid
         if (!dbUser || !dbUser.id) {
           throw new Error("User ID is not valid or not found.");
         }
 
         token = {
           ...token,
-          id: dbUser.id,
+          id: dbUser.id!,
           email: dbUser.email,
           name: dbUser.name,
           role: dbUser.role,
@@ -116,6 +131,7 @@ export const {
       console.log(token);
       return token;
     },
+
     session({ token, session }) {
       let user = token as typeof token & SessionUserProfile;
 

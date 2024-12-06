@@ -1,5 +1,6 @@
 import { query } from "@/lib/database";
 import { OkPacket, ResultSetHeader, RowDataPacket } from "mysql2";
+import { CollectionType } from "../types";
 
 interface PriceRange {
   min: number;
@@ -242,6 +243,8 @@ export const fetchProductById = async (
       sizes: parseJsonSafe(product.sizes),
       colors: parseJsonSafe(product.colors),
       collections: parseJsonSafe(product.collections),
+      createdAt: product.createdAt ? new Date(product.createdAt) : undefined,
+      updatedAt: product.updatedAt ? new Date(product.updatedAt) : undefined,
     };
 
     return productAttributes;
@@ -380,6 +383,7 @@ export const getProductsForCollection = async (
 };
 
 //special delimeter function add products to collection by name
+
 export const getCollectionProductsByName = async (
   collectionName: string
 ): Promise<ProductAttributes[] | null> => {
@@ -421,6 +425,7 @@ export const getCollectionProductsByName = async (
     throw error; // Rethrow the error after logging it
   }
 };
+
 // Fetch the collection ID by its title
 export const getCollectionIdByTitle = async (
   collectionTitle: string

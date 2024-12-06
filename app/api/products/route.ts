@@ -3,13 +3,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import {
-  createProduct,
+  // createProduct,
   getAllProducts,
   addProductsToCollection,
   ProductAttributes,
 } from "@/lib/models/Product";
+import { query } from "@/lib/database";
+import { RowDataPacket } from "mysql2";
 
 // POST: Create a new product
+
 export const POST = async (req: NextRequest) => {
   try {
     const session = await auth();
@@ -17,35 +20,54 @@ export const POST = async (req: NextRequest) => {
       return new NextResponse("Unauthorized", { status: 403 });
     }
 
-    const productData = await req.json();
-    if (!productData) {
-      return new NextResponse("Bad Request: Missing Product Data", {
+    const {
+      title,
+      description,
+      media,
+      category,
+      collections,
+      tags,
+      sizes,
+      colors,
+      price,
+      expense,
+    } = await req.json();
+
+    if (!title || !description || !media || !category || !price || !expense) {
+      return new NextResponse("Not enough data to create a product", {
         status: 400,
       });
     }
 
-    const newProduct = await createProduct(productData);
-    if (!newProduct) {
-      return new NextResponse(
-        "Internal Server Error: Product Creation Failed",
-        { status: 500 }
-      );
+    // Insert product into the database
+    const result = await query({
+      query:
+        "INSERT INTO products (title, description, media, category, price, expense) VALUES (?, ?, ?, ?, ?, ?)",
+      values: [title, description, media, category, price, expense],
+    });
+
+    // Type assertion to indicate result is an array of RowDataPacket
+    const insertId = (result as RowDataPacket[])[0]?.insertId;
+
+    if (!insertId) {
+      return new NextResponse("Failed to insert product", { status: 500 });
     }
 
-    const typedProduct = newProduct as unknown as ProductAttributes;
-
-    if (productData.collections && productData.collections.length > 0) {
-      await Promise.all(
-        productData.collections.map((collectionId: number) =>
-          addProductsToCollection(typedProduct.id, [collectionId])
-        )
-      );
+    // Associate product with collections
+    if (collections && collections.length > 0) {
+      for (const collectionId of collections) {
+        await query({
+          query:
+            "INSERT INTO collection_products (collection_id, product_id) VALUES (?, ?)",
+          values: [collectionId, insertId],
+        });
+      }
     }
 
-    return NextResponse.json(typedProduct, { status: 201 });
+    return new NextResponse("Product created successfully", { status: 201 });
   } catch (err) {
-    console.log("[products_POST]", err);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    console.error("Error during product creation:", err);
+    return new NextResponse("An unexpected error occurred", { status: 500 });
   }
 };
 
@@ -78,13 +100,13 @@ export const GET = async (req: NextRequest) => {
     // Ensure media is properly set for all products and log media URLs
     products.forEach((product) => {
       product.media = parsedMedia.length ? parsedMedia : product.media || [""];
-      console.log(
-        `[products_GET] Media URLs for product (${product.id}):`,
-        product.media
-      );
+      // console.log(
+      //   `[products_GET] Media URLs for product (${product.id}):`,
+      //   product.media
+      // );
     });
 
-    console.log("[products_GET] Products fetched successfully", products);
+    // console.log("[products_GET] Products fetched successfully", products);
     return NextResponse.json(products, { status: 200 });
   } catch (err) {
     console.log("[products_GET]", err);

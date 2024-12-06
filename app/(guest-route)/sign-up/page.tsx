@@ -1,6 +1,6 @@
 "use client";
 
-import { FC, useEffect, useState } from "react";
+import { FC, useState } from "react";
 import { Input } from "@nextui-org/react";
 import { signUp } from "@/app/actions/auth";
 import { useRouter } from "next/navigation";
@@ -15,9 +15,12 @@ const SignUp: FC = () => {
   const router = useRouter();
 
   const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
     if (!name || !email || !password) {
       setError("All fields are required.");
+      return;
+    }
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
       return;
     }
 
@@ -34,11 +37,11 @@ const SignUp: FC = () => {
 
       if (response.success) {
         setSuccessMessage(
-          "Sign-up successful! Please check your email for verification."
+          "Sign-up successful! Please check your email for verification, click Sign In to log. We are sending you a verification link."
         );
         setTimeout(() => {
           router.push("/sign-in");
-        }, 3000);
+        }, 2000);
       } else {
         setError(response.error || "Sign-up failed. Please try again.");
       }
@@ -50,7 +53,10 @@ const SignUp: FC = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-r via-neutral-800 to-gray-700">
+    <div
+      suppressHydrationWarning
+      className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-r via-neutral-800 to-gray-700"
+    >
       <div className="bg-white rounded-lg shadow-lg p-6 sm:p-6 max-w-md w-full">
         <h1 className="text-2xl sm:text-3xl font-bold text-amber-800 mb-6 text-center">
           Sign-up to Dessysattic

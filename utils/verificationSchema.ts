@@ -5,7 +5,7 @@ export const signInSchema = z.object({
   password: z
     .string({ required_error: "Invalid password!" })
     .trim()
-    .min(3, "Password is too short!"),
+    .min(6, "Password is too short!"),
 });
 
 export const passwordValidationSchema = z

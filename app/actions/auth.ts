@@ -1,3 +1,5 @@
+//app\actions\auth.ts
+
 "use server";
 
 import z from "zod";
@@ -9,6 +11,8 @@ import {
   getUserByEmail,
   updateUser,
   getUserById,
+  getAdminEmails,
+  hashPassword,
   compareUserPassword,
 } from "@/lib/models/user";
 import {
@@ -35,13 +39,14 @@ import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 
 // Admin email list
-const adminEmails = ["dessysattic@gmail.com", "Omoefeeweka6@gmail.com"];
 
 interface AuthResponse {
   success?: boolean;
   errors?: Record<string, string[]>;
   error?: string;
+  message?: string;
 }
+
 // Utility function for response
 const sendResponse = (status: number, data: any) => ({ status, data });
 
@@ -98,6 +103,15 @@ export const signUp = async (
 
   const { name, email, password } = result.data;
 
+  // Check if all values are strings before proceeding with hashing
+  if (
+    typeof name !== "string" ||
+    typeof email !== "string" ||
+    typeof password !== "string"
+  ) {
+    return { success: false, error: "Invalid input data" };
+  }
+
   const existingUser = await getUserByEmail(email);
   if (existingUser) {
     return { success: false, error: "User already exists!" };
@@ -112,16 +126,17 @@ export const signUp = async (
     verified: false,
   });
 
-  // Ensure user is not null before passing it to handleVerificationToken
   if (user && user.id && user.name && user.email) {
     await handleVerificationToken(user);
   } else {
     return { success: false, error: "User creation failed or incomplete." };
   }
 
-  await signIn("credentials", { email, password, redirectTo: "/" });
-
-  return { success: true };
+  return {
+    success: true,
+    message:
+      "Sign-up successful! Please check your email for a verification link and click Sign In to log in.",
+  };
 };
 
 export const continueWithCredentials = async (
@@ -138,32 +153,52 @@ export const continueWithCredentials = async (
   }
 
   const { email, password } = result.data;
+  console.log("user data:", result.data);
 
-  // Ensure password is defined and of type string
   if (typeof password !== "string") {
     return { success: false, error: "Password is required." };
   }
 
   const user = await getUserByEmail(email);
+  console.log("user email provided", user?.email);
 
   if (!user) {
     return { success: false, error: "User not found." };
   }
 
-  // Ensure that the password in the user object is defined and a string
   if (typeof user.password !== "string") {
     return { success: false, error: "User password is invalid." };
   }
 
-  // Now, password and user.password are both guaranteed to be strings
+  console.log("Both passwords", password, user.password);
+
+  // Compare provided password with the stored hashed password
   const isPasswordValid = await bcrypt.compare(password, user.password);
+  console.log("Password match result:", isPasswordValid);
 
   if (!isPasswordValid) {
     return { success: false, error: "Incorrect password." };
   }
 
-  await signIn("credentials", { email, password });
-  return { success: true };
+  try {
+    const response = await signIn("credentials", {
+      redirect: false,
+      email,
+      password,
+      callbackUrl: "/",
+    });
+
+    if (!response || response.error) {
+      console.error("Authentication failed:", response?.error);
+      return { success: false, error: "Authentication failed." };
+    }
+
+    console.log("User authenticated successfully:", email);
+    return { success: true };
+  } catch (error) {
+    console.error("Authentication error:", error);
+    return { success: false, error: "Authentication failed." };
+  }
 };
 
 interface VerificationResponse {
@@ -301,4 +336,12 @@ export const updatePassword = async (
   await deleteByUserId(Number(user.id));
 
   return { success: true };
+};
+
+// Ensure default admin verification
+export const validateAdmin = async (email: string): Promise<boolean> => {
+  const adminEmails = await getAdminEmails(email);
+
+  // Check if the provided email matches one of the admin emails
+  return adminEmails.includes(email);
 };

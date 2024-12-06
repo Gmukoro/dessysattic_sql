@@ -195,7 +195,10 @@ const Navbar: FC = () => {
   const { data: session } = useSession();
   const cart = useCart();
   const user = session?.user;
-  const avatar = user?.avatar || "/avartar.png";
+  const avatar =
+    typeof user?.avatar === "object" && user?.avatar?.url
+      ? user.avatar.url
+      : "/avartar.png";
   const name = user?.name || "User";
 
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
